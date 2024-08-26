@@ -49,7 +49,7 @@ def ProjectEuler_EvenFibonacci_2() -> int:
     term2 = 2
     new_term = 3
 
-    # Current sum of all even number 
+    # Current sum of all even number
     curr_sum = 2
 
     # While newest term in sequence is less than limit
@@ -70,68 +70,61 @@ def ProjectEuler_EvenFibonacci_2() -> int:
 def ProjectEuler_LargestPrimeFactor_3() -> int:
     # Input value for which we are finding largest prime factor
     num = 600851475143
-    solution = -1
 
-    # No possible solution if num is negative
-    if (num < 0):
-        return solution
+    # Start checking divisors at i=3 since 'num' is not even
+    i = 3
+    lastPrime = 1
 
-    # Largest prime factor of num must be less than or equal to sqrt(num)
-    # TODO: the above comment is wrong and this is actually incorrect
-    # TODO: read overview PDF for this problem for details...
-    max_prime_factor = math.floor(math.sqrt(num))
+    # Note: there can be (at most) one prime factor of num that is > sqrt(num):
+    limit = math.floor(math.sqrt(num))
 
-    # Iterate through all possible prime factors from largest to smallest
-    # The first value that evenly divides num and is prime will be our solution
-    for i in range(max_prime_factor, 1, -1):
-        if ((num % i) == 0) and (check_prime(i)):
-            solution = i
-            break
+    # Iterate over all divisors until limit is reached, or all divisors are found
+    while (num > 1) and (i <= limit):
+        while ((num % i) == 0):
+            num //= i
+        else:
+            limit = math.floor(math.sqrt(num))
+            lastPrime = i
+        i += 2
 
-    return solution
+    # If 'num' is still greater than 1
+    # Then it must be equal to the last (largest) prime factor of original input val
+    if (num > 1):
+        lastPrime = num
+
+    return lastPrime
 
 
-# TODO: solve using mathematical properties
 def ProjectEuler_LargestPalindromeProduct_4() -> int:
-    # Min/Max bounds for largest palindrome that is product of two 3-digit values
-    min_val = 100*100
-    max_val = 999*999
-    solution = -1
-
-    # Helper function that determines if input val is palindromic
-    def isPalindrome(val: int) -> bool:
-        val = str(val)
-        n = len(val)
-
-        for i in range(0, math.floor(n / 2)):
-            if (val[i] != val[n-1-i]):
-                return False
-        return True
-    
-    # Helper function that determines if input val is a product of two 3-digit integers
+    # Helper function to see if input val is a product of two 3-digit integers
+    # Only multiples of 11 are checked, as 'val' must be divisible by 11:
     def is_product_of_3_digit_nums(val: int) -> bool:
-        for i in range(100, 1000):
-            # As i increases, curr_res will decrease. 
+        for i in range(110, 1000, 11):
+            # As i increases, curr_res will decrease.
             # So, if curr_res already smaller than 3 digits, we can quit
             curr_res = val / i
             if (curr_res < 100):
                 return False
-            
+
             # Check if current i value meets criteria
-            if ((val % i) == 0) and (curr_res >= 100) and (curr_res <= 999):
+            if ((val % i) == 0) and (curr_res <= 999):
                 return True
 
         # Return False if all 3 digit values are checked and no valid solution is found
         return False
 
-    # Check all values within min/max bounds from largest to smallest
-    # First value found that meets all criteria is our solution
-    for i in range(max_val, min_val-1, -1):
-        if (isPalindrome(i)) and (is_product_of_3_digit_nums(i)):
-            solution = i
-            break
+    # Assume solution is 6 digits long
+    # Therefore it must be of form: 'abccba' where a,b,c are one-digit numbers
+    # Check all possible values from largest to smallest:
+    for a in range(9, -1, -1):
+        for b in range(9, -1, -1):
+            for c in range(9, -1, -1):
+                val = 11 * (9091*a + 910*b + 100*c)
+                if (is_product_of_3_digit_nums(val)):
+                    return val
 
-    return solution
+    # No solution found, return -1
+    return -1
 
 
 def ProjectEuler_SmallestMultiple_5() -> int:
@@ -177,12 +170,12 @@ def ProjectEuler_SumSquareDifference_6() -> int:
 
 
 def ProjectEuler_10001stPrime_7() -> int:
-    # Find 10001st prime number
-    num = 10001
+    # Find 10001st prime number. Skipping '2' so set num=10000
+    num = 10000
     curr_val = 1
 
     while (num > 0):
-        curr_val += 1
+        curr_val += 2
         if (check_prime(curr_val)):
             num -= 1
 
@@ -204,7 +197,7 @@ def ProjectEuler_LargestProductInSeries_8() -> int:
     k = 13
     n = len(num)
 
-    # Iterate through ith digit one-by-one 
+    # Iterate through ith digit one-by-one
     i = 0
     calcNewProduct = True
     curr_product = 1
@@ -272,52 +265,31 @@ def ProjectEuler_SpecialPythagoreanTriplet_9() -> int:
 
     return solution
 
-# TODO: resolve using sieve method
+
 def ProjectEuler_SummationPrimes_10() -> int:
-    # Find sum of all primes less than num
-    num = 2000000
+    # Find sum of all primes less than n
+    n = 2000000
+    prime_sum = 2
 
-    # Store all found primes in set
-    # We already include "2" and "3", so we can skip all values that are multiples of 2 and 3
-    prime_numbers = list([2, 3])
-    sum = 5
+    # Initialize sieve
+    prime_sieve = [True] * n
+    prime_sieve[0] = False
+    prime_sieve[1] = False
 
-    # Iterate through all odd numbers from 5 to num. Check if each number is prime or not
-    # for i in range(3, num, 2):
-    i = 5
-    increment2 = True
-    while (i < num):
-        # Calculate max possible prime factor for current num 
-        max_prime = math.floor(math.sqrt(i))
-        isPrime = True
+    # Skip all even numbers after 2, as they cannot be prime
+    for i in range(3, n, 2):
+        # If current num has not been eliminated, it must be prime
+        if (prime_sieve[i]):
+            prime_sum += i
 
-        # Loop through all possible prime factors for i
-        # If no factors are found, then current i value is prime
-        for prime_val in prime_numbers:
-            if (prime_val > max_prime):
-                break
-            elif ((i % prime_val) == 0):
-                isPrime = False
-                break
+            # Eliminate all odd multiples of current num in sieve
+            for val in range(i*3, n, i*2):
+                prime_sieve[val] = False
 
-        # Update sum and list of prime numbers if necessary
-        if (isPrime):
-            prime_numbers.append(i)
-            sum += i
-
-        # Want to alternate incrementing i by 2 and by 4
-        # This is so we skip over all elements that are divisible by 2 and 3
-        if (increment2):
-            i += 2
-            increment2 = False
-        else:
-            i += 4
-            increment2 = True
-
-    return sum
+    return prime_sum
 
 
-if __name__ == "__main__":
+def main():
     sol_1 = ProjectEuler_Multiples_1()
     print(f"sol_1 = {sol_1}")
 
@@ -347,3 +319,7 @@ if __name__ == "__main__":
 
     sol_10 = ProjectEuler_SummationPrimes_10()
     print(f"sol_10 = {sol_10}")
+
+
+if __name__ == "__main__":
+    main()
