@@ -46,28 +46,49 @@ def largest_product_in_list(nums: list, k: int) -> int:
 
 
 # Helper function that returns number of divisors for positive input integer 'num'
-def get_num_divisors(num: int) -> int:
+def get_num_divisors(num: int, primes: list) -> int:
     if (num <= 0):
         return -1
-    elif (num == 1):
-        return 1
 
-    # All positive integers are divisible by 1
     num_divisors = 1
+    limit = math.sqrt(num)
+    p_factor_exp = 1
+    i = 0
 
-    # Only need to find all divisors up to (and including) sqrt(num)
-    max_divisor = math.floor(math.sqrt(num))
+    while (num > 1) and (primes[i] <= limit):
+        while ((num % primes[i]) == 0):
+            num //= primes[i]
+            p_factor_exp += 1
+        else:
+            num_divisors *= p_factor_exp
+            p_factor_exp = 1
+            limit = math.sqrt(num)
+        i += 1
 
-    # Increment num_divisors by 2 each time a valid divisor is found
-    # This is to also account for the divisor greater than sqrt(num), then return
-    for i in range(2, max_divisor):
-        if ((num % i) == 0):
-            num_divisors += 2
-
-    if ((max_divisor * max_divisor) == num):
-        num_divisors -= 1
+    if (num > 1):
+        num_divisors *= 2
 
     return num_divisors
+
+
+def collatz_chain_len(num: int, memo_table: list, len_table: int) -> int:
+    # If already found chain_len for 'num', return tabulated solution
+    if (num < len_table) and (memo_table[num] != -1):
+        return memo_table[num]
+
+    # Continue recursing until end of chain is found
+    if (num % 2):
+        next_num = (3*num + 1) // 2
+        curr_chain_len = collatz_chain_len(next_num, memo_table, len_table) + 2
+    else:
+        next_num = num // 2
+        curr_chain_len = collatz_chain_len(next_num, memo_table, len_table) + 1
+
+    # Insert current solution in memoization table
+    if (num < len_table):
+        memo_table[num] = curr_chain_len
+
+    return curr_chain_len
 
 
 class Date:
@@ -233,8 +254,16 @@ def ProjectEuler_LargestGridProduct_11() -> int:
 
     return largest_product
 
-# TODO: optimize with prime factors and (nCk) operation?
+
 def ProjectEuler_DivisibleTriangularNumber_12() -> int:
+    try:
+        input_file = open(Path("precomputed_primes/primes_10_thousand.txt"), "r")
+        primes_list = json.load(input_file)
+        input_file.close()
+    except FileNotFoundError:
+        print(f"Error: could not find list of prime numbers")
+        return -1
+
     # Want to find first number with at least 'n' divisors
     n = 500
 
@@ -243,7 +272,7 @@ def ProjectEuler_DivisibleTriangularNumber_12() -> int:
     curr_natural_num = 1
 
     # Iterate through triangle numbers from smallest to largest until find solution
-    while (get_num_divisors(curr_triangle_num) < n):
+    while (get_num_divisors(curr_triangle_num, primes_list) < n):
         curr_natural_num += 1
         curr_triangle_num += curr_natural_num
 
@@ -278,31 +307,16 @@ def ProjectEuler_LongestCollatzSequence_14() -> int:
     best_starting_num = -1
 
     # Chain length from any given number is always the same
-    # So, store prev. calculated results in dictionary (memoization)
-    prev_results = dict()
+    # So, store prev. calculated results in array (memoization)
+    prev_results = [-1] * n
+    prev_results[1] = 1
 
-    # TODO: improve memoization
-    for i in range (1, n):
-        curr_num = i
-        chain = [curr_num]
-        curr_chain_len = 1
-
-        while (curr_num != 1):
-            if (curr_num in prev_results):
-                curr_chain_len += prev_results[curr_num] - 1
-                break
-
-            if (curr_num % 2):
-                curr_num = (3*curr_num) + 1     # if odd
-            else:
-                curr_num = curr_num / 2         # if even
-            curr_chain_len += 1
-
-        if (curr_chain_len > longest_chain_len):
+    # An even value '2k' will have Collatz(2k) = Collatz(k) + 1
+    # So for all (i < n/2), Collatz(i) cannot be the longest sequences
+    for i in range (n//2, n):
+        if (collatz_chain_len(i, prev_results, n) > longest_chain_len):
             best_starting_num = i
-            longest_chain_len = curr_chain_len
-
-        prev_results[i] = curr_chain_len
+            longest_chain_len = prev_results[i]
 
     return best_starting_num
 
@@ -469,18 +483,17 @@ def ProjectEuler_FactorialDigitSum_20() -> int:
     return sum
 
 
-if __name__ == "__main__":
+def main():
     sol_11 = ProjectEuler_LargestGridProduct_11()
     print(f"sol_11 = {sol_11}")
 
-    # TODO: slow
+    # TODO: can optimize futher using co-prime identity
     sol_12 = ProjectEuler_DivisibleTriangularNumber_12()
     print(f"sol_12 = {sol_12}")
 
     sol_13 = ProjectEuler_LargeSum_13()
     print(f"sol_13 = {sol_13}")
 
-    # TODO: slow
     sol_14 = ProjectEuler_LongestCollatzSequence_14()
     print(f"sol_14 = {sol_14}")
 
@@ -501,3 +514,7 @@ if __name__ == "__main__":
 
     sol_20 = ProjectEuler_FactorialDigitSum_20()
     print(f"sol_20 = {sol_20}")
+
+
+if __name__ == "__main__":
+    main()
