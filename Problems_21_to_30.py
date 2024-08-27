@@ -1,28 +1,7 @@
 # Keshav Pandey
+import json
 import math
 from pathlib import Path
-
-# Helper function that determines if input parameter is prime
-# This prime number checker uses trial division algorithm
-def check_prime(val: int) -> bool:
-    # Smallest and only even prime number is 2
-    if (val < 2):
-        return False
-    elif (val == 2):
-        return True
-    elif ((val % 2) == 0):
-        return False
-
-    # Input val is a positive odd number
-    # Check if val has any factors. If so, then it is not prime
-    max_prime = math.floor(math.sqrt(val))
-    for i in range(3, max_prime+1, 2):
-        if ((val % i) == 0):
-            return False
-
-    # No factors found for val. Therefore it must be prime
-    return True
-
 
 def ProjectEuler_AmicableNumbers_21() -> int:
     # Find sum of all amicable numbers less than n
@@ -33,10 +12,16 @@ def ProjectEuler_AmicableNumbers_21() -> int:
     value_divisorsum = dict()
 
     for i in range(1, n):
-        sum_of_divisors = 0
-        for j in range(1, i):
+        sum_of_divisors = 1
+        limit = math.floor(math.sqrt(i))
+
+        for j in range(2, limit+1):
             if ((i % j) == 0):
-                sum_of_divisors += j
+                sum_of_divisors += j + (i//j)
+
+        if ((limit * limit) == i):
+            sum_of_divisors -= limit
+
         value_divisorsum[i] = sum_of_divisors
 
         if (value_divisorsum.get(sum_of_divisors, -1) == i) and (i != sum_of_divisors):
@@ -74,6 +59,7 @@ def ProjectEuler_NamesScores_22() -> int:
     return total_score
 
 
+# TODO: can optimize further?
 def ProjectEuler_NonAbundantSums_23() -> int:
     n = 28123
     abundant_nums = list()
@@ -81,22 +67,31 @@ def ProjectEuler_NonAbundantSums_23() -> int:
     # Get list of all abundant numbers
     for i in range(2, n+1):
         divisor_sum = 1
-        for curr_divisor in range(2, i):
+        limit = math.floor(math.sqrt(i))
+
+        if ((limit * limit) == i):
+            divisor_sum -= limit
+
+        for curr_divisor in range(2, limit+1):
             if ((i % curr_divisor) == 0):
-                divisor_sum += curr_divisor
+                divisor_sum += curr_divisor + (i//curr_divisor)
                 if (divisor_sum > i):
                     break
 
         if (divisor_sum > i):
             abundant_nums.append(i)
 
-    
     abundant_nums_set = set(abundant_nums)
     nonabundant_sum = 0
 
+    # Find sum of all numbers that cannot be written as abundant sum
     for i in range(n+1):
         for abundant_num in abundant_nums:
             complement = i - abundant_num
+            if (complement <= 0):
+                nonabundant_sum += i
+                break
+
             if (complement in abundant_nums_set):
                 break
         else:
@@ -192,23 +187,37 @@ def ProjectEuler_ReciprocalCycles_26() -> int:
 
 
 def ProjectEuler_QuadraticPrimes_27() -> int:
+    try:
+        input_file = open(Path("precomputed_primes/primes_100_thousand.txt"), "r")
+        primes_list = json.load(input_file)
+        input_file.close()
+    except FileNotFoundError:
+        print(f"Error: could not find list of prime numbers")
+        return -1
+
+    # Initialize variables for storing solution
     max_num_primes = 0
     product_of_coefficients = 0
 
+    # Setup prime number data structures
+    primes_set = set(primes_list)
+    primes_list = primes_list[:168]     # only need primes <= 1000
+
     # Given quadratic equation: n^2 + an + b
     # Must have: |a| < 1000 and |b| <= 1000
+    # Notice 'b' must be prime: check pos 'b' only
+    # Since 'b' is prime: 'a' must be odd (check n=1 case)
     a_lim = 999
-    b_lim = 1000
 
-    for a in range(-a_lim, a_lim+1):
-        for b in range(-b_lim, b_lim+1):
+    for a in range(-a_lim, a_lim+1, 2):
+        for b in primes_list:
             n = 0
-            soln = (math.pow(n, 2)) + (a * n) + (b)
+            soln = (n ** 2) + (a * n) + (b)
 
-            while (check_prime(soln)):
+            while (soln in primes_set):
                 n += 1
-                soln = (math.pow(n, 2)) + (a * n) + (b)
-            
+                soln = (n ** 2) + (a * n) + (b)
+
             if (n > max_num_primes):
                 max_num_primes = n
                 product_of_coefficients = a * b
@@ -229,7 +238,7 @@ def ProjectEuler_NumberSpiralDiagonals_28() -> int:
 
     return diagonal_sum
 
-    
+
 def ProjectEuler_DistinctPowers_29() -> int:
     # Store all powers in a set
     distinct_powers = set()
@@ -253,14 +262,19 @@ def ProjectEuler_DigitFifthPowers_30() -> int:
     n = 200000
     fifth_power_sum = 0
 
+    # Only need to computer powers of each digit once
+    fifth_powers = [0] * 10
+    for i in range(1, 10):
+        fifth_powers[i] = math.pow(i, 5)
+
+    # Skip one digit numbers, as they cannot create a 'sum'
     for i in range(10, n+1):
         curr_val = i
         curr_sum = 0
 
-        while (curr_val > 0):
-            curr_digit = curr_val % 10
-            curr_val = curr_val // 10
-            curr_sum += math.pow(curr_digit, 5)
+        while (curr_val > 0) and (curr_sum <= i):
+            curr_sum += fifth_powers[curr_val % 10]
+            curr_val //=  10
 
         if (curr_sum == i):
             fifth_power_sum += i
@@ -268,7 +282,7 @@ def ProjectEuler_DigitFifthPowers_30() -> int:
     return fifth_power_sum
 
 
-if __name__ == "__main__":
+def main():
     sol_21 = ProjectEuler_AmicableNumbers_21()
     print(f"sol_21 = {sol_21}")
 
@@ -298,3 +312,7 @@ if __name__ == "__main__":
 
     sol_30 = ProjectEuler_DigitFifthPowers_30()
     print(f"sol_30 = {sol_30}")
+
+
+if __name__ == "__main__":
+    main()
