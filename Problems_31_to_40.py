@@ -1,7 +1,20 @@
 # Keshav Pandey
-from itertools import permutations
 from collections import deque
+import json
 import math
+from pathlib import Path
+
+# Returns true if 'val' is a 1 to 9 pandigital
+def pandigital(val: int) -> bool:
+    result = 0
+
+    while (val > 0):
+        result |= 1 << ((val % 10))
+        val //= 10
+
+    # If pandigital must have (result == 0b1111111110)
+    return (result == 0x3FE)
+
 
 # Helper function that determines if input parameter is prime
 # This prime number checker uses trial division algorithm
@@ -25,13 +38,16 @@ def check_prime(val: int) -> bool:
     return True
 
 
-# Helper function that determines if input string is palindromic
-# This palindrome checker uses two pointer algorithm
-def check_palindrome(input_str: str) -> bool:
-    for i in range(len(input_str) // 2):
-        if (input_str[i] != input_str[-1-i]):
-            return False
-    return True
+# Helper function that determines if integer 'val' is palindromic in base 2
+def check_palindrome(val: int) -> bool:
+    reverse = 0
+    temp = val
+
+    while (temp > 0):
+        reverse = (reverse << 1) | (temp & 1)
+        temp >>= 1
+
+    return (val == reverse)
 
 
 def ProjectEuler_CoinSums_31() -> int:
@@ -61,24 +77,34 @@ def ProjectEuler_CoinSums_31() -> int:
 
 
 def ProjectEuler_PandigitalProducts_32() -> int:
-    combos = permutations(["1","2","3","4","5","6","7","8","9"], 9)
+    result = 0
     pandigital_products = set()
 
-    for combo in combos:
-        for i in range(1, 8):
-            for j in range(i+1, 9):
-                multiplicand = int("".join(combo[:i]))
-                multiplier = int("".join(combo[i:j]))
-                product = int("".join(combo[j:]))
+    # Try all (1-digit * 4-digit = 4-digit) combinations
+    for i in range(1, 10):
+        for j in range(1000, 10000):
+            product = i*j
+            if (product > 9999):
+                break
 
-                if ((multiplicand * multiplier) == product):
-                    pandigital_products.add(product)
-                elif ((multiplicand * multiplier) > product):
-                    break
+            pan_val = j*100000 + product*10 + i
 
-    result = 0
-    for pandigital_product in pandigital_products:
-        result += pandigital_product
+            if (pandigital(pan_val)) and (product not in pandigital_products):
+                pandigital_products.add(product)
+                result += product
+
+    # Try all (2-digit * 3-digit = 4-digit) combinations
+    for i in range(10, 100):
+        for j in range(100, 1000):
+            product = i*j
+            if (product > 9999):
+                break
+
+            pan_val = j*1000000 + product*100 + i
+
+            if (pandigital(pan_val)) and (product not in pandigital_products):
+                pandigital_products.add(product)
+                result += product
 
     return result
 
@@ -135,10 +161,9 @@ def ProjectEuler_DigitFactorials_34() -> int:
         curr_val = i
         curr_sum = 0
 
-        while (curr_val > 0):
-            curr_digit = curr_val % 10
-            curr_val = curr_val // 10
-            curr_sum += math.factorial(curr_digit)
+        while (curr_val > 0) and (curr_sum <= i):
+            curr_sum += math.factorial(curr_val % 10)
+            curr_val //= 10
 
         if (curr_sum == i):
             factorial_sum += i
@@ -147,77 +172,122 @@ def ProjectEuler_DigitFactorials_34() -> int:
 
 
 def ProjectEuler_CircularPrimes_35() -> int:
-    num_circular_primes = 13            # We are told there are 13 circular primes below 100
-    even_digits = {0, 2, 4, 6, 8}       # Set containing all even digits
-    n = 1000000                         # Looking for all circular primes less than 'n'
+    try:
+        input_file = open(Path("precomputed_primes/primes_1_million.txt"), "r")
+        primes_list = json.load(input_file)
+        input_file.close()
+    except FileNotFoundError:
+        print(f"Error: could not find list of prime numbers")
+        return -1
 
-    for i in range(101, n, 2):
-        # If 'i' contains any even digits, cannot be circular prime
-        curr_val = i
+    num_circular_primes = 13            # We are told there are 13 circular primes below 100
+    primes_list = primes_list[25:]      # Ignore primes below 100
+    bad_digits = {0, 2, 4, 6, 8, 5}     # All digits which disqualify num from being circular prime
+
+    for p in primes_list:
+        # If 'p' contains any even digits or 5, cannot be circular prime
+        curr_val = p // 10
 
         while (curr_val > 0):
             curr_digit = curr_val % 10
-            curr_val = curr_val // 10
+            curr_val //= 10
 
-            if (curr_digit in even_digits) or (curr_digit == 5):
+            if (curr_digit in bad_digits):
                 break
         else:
-            curr_val = i
+            curr_val = p
             rotate_val = deque(str(curr_val))
             num_digits = len(rotate_val)
-            circular = True
 
             for _ in range(num_digits):
                 if (not check_prime(curr_val)):
-                    circular = False
                     break
                 else:
                     rotate_val.appendleft(rotate_val.pop())
                     curr_val = int("".join(rotate_val))
-
-            if (circular):
+            else:
                 num_circular_primes += 1
 
     return num_circular_primes
 
 
 def ProjectEuler_DoubleBasePalindromes_36() -> int:
-    n = 1000000
     sum_palindromes = 0
 
-    # Assumption: only considering positive numbers
-    for i in range(1, n):
-        if check_palindrome(str(i)) and check_palindrome(str(bin(i))[2:]):
-            sum_palindromes += i
+    # Check if base 10 palindromes of form 'a' and 'aa' are palindromic in base 2
+    for a in range(1, 10, 2):
+        if check_palindrome(a):
+            sum_palindromes += a
+
+        palindrome = (a*10)+a
+        if check_palindrome(palindrome):
+            sum_palindromes += palindrome
+
+    # Check if base 10 palindromes of form 'aba' and 'abba' are palindromic in base 2
+    for a in range(1, 10, 2):
+        for b in range(10):
+            palindrome = (a*100) + (b*10) + a
+            if check_palindrome(palindrome):
+                sum_palindromes += palindrome
+
+            palindrome = (a*1000) + (b*100) + (b*10) + a
+            if check_palindrome(palindrome):
+                sum_palindromes += palindrome
+
+    # Check if base 10 palindromes of form 'abcba' and 'abccba' are palindromic in base 2
+    for a in range(1, 10, 2):
+        for b in range(10):
+            for c in range(10):
+                palindrome = (a*10000) + (b*1000) + (c*100) + (b*10) + a
+                if check_palindrome(palindrome):
+                    sum_palindromes += palindrome
+
+                palindrome = (a*100000) + (b*10000) + (c*1000) + (c*100) + (b*10) + a
+                if check_palindrome(palindrome):
+                    sum_palindromes += palindrome
 
     return sum_palindromes
 
 
 def ProjectEuler_TruncatablePrimes_37() -> int:
-    n = 1000000
-    even_digits = {0, 2, 4, 6, 8}
-    sum_primes = 0
+    try:
+        input_file = open(Path("precomputed_primes/primes_1_million.txt"), "r")
+        primes_list = json.load(input_file)
+        input_file.close()
+    except FileNotFoundError:
+        print(f"Error: could not find list of prime numbers")
+        return -1
 
-    for i in range(11, n, 2):
-        # If 'i' contains even digits (aside from leftmost digit) -> cannot be truncatable prime
-        curr_val = i
+    sum_primes = 0                      # Store sum of all trunc. primes
+    total_trunc_primes = 11             # We are told there are only 11 trunc. primes
+    primes_list = primes_list[4:]       # Ignore single digit primes
+    bad_digits = {0, 2, 4, 6, 8, 5}     # All digits which disqualify num from being trunc. prime
+
+    for p in primes_list:
+        # Found all 11 truncatable primes, exit loop
+        if (total_trunc_primes == 0):
+            break
+
+        # If 'p' contains even digits or 5 (aside from leftmost digit), cannot be trunc. prime
+        curr_val = p // 10
+
         while (curr_val > 9):
             curr_digit = curr_val % 10
-            curr_val = curr_val // 10
+            curr_val //= 10
 
-            if (curr_digit in even_digits) or (curr_digit == 5):
+            if (curr_digit in bad_digits):
                 break
         else:
-            # Check if 'i' is prime when truncating rightmost digits
-            curr_val = i
+            # Check if 'p' is prime when truncating rightmost digits
+            curr_val = p
             while (curr_val > 0):
                 if (check_prime(curr_val)):
                     curr_val = curr_val // 10
                 else:
                     break
             else:
-                # Check if 'i' is prime when truncating leftmost digits
-                truncate = deque(str(i))
+                # Check if 'p' is prime when truncating leftmost digits
+                truncate = deque(str(p))
                 truncate.popleft()
 
                 while (len(truncate) > 0):
@@ -227,7 +297,8 @@ def ProjectEuler_TruncatablePrimes_37() -> int:
                     else:
                         break
                 else:
-                    sum_primes += i
+                    sum_primes += p
+                    total_trunc_primes -= 1
 
     return sum_primes
 
@@ -255,24 +326,31 @@ def ProjectEuler_PandigitalMultiples_38() -> int:
 
 
 def ProjectEuler_IntegerRightTriangles_39() -> int:
+    # Store the number of distinct solutions for all p <= p_max
     p_max = 1000
+    p_solns = [0] * (p_max+1)
 
+    # Initialize variables to store final solution
     max_solutions = 0
     best_p_val = -1
 
-    for p in range(3, p_max+1):
-        curr_solns = 0
-        for a in range(1, p):
-            a_squared = math.pow(a, 2)
-            for b in range(a, p):
-                c = math.sqrt(a_squared + math.pow(b, 2))
-                if ((a + b + c) == p):
-                    curr_solns += 1
-                elif ((a + b + c) > p):
-                    break
-        if (curr_solns > max_solutions):
-            max_solutions = curr_solns
-            best_p_val = p
+    # Find all integer right angle triangles with perimeters <= p_max
+    for a in range(1, p_max+1):
+        a_squared = a ** 2
+        for b in range(a, p_max+1):
+            c = (math.sqrt(a_squared + (b ** 2)))
+            if ((a + b + c) > p_max):
+                break
+
+            if (int(c) == c):
+                perimeter = a+b+int(c)
+                p_solns[perimeter] += 1
+
+    # Find perimeter with most solutions, then return result
+    for i in range(p_max+1):
+        if (p_solns[i] > max_solutions):
+            max_solutions = p_solns[i]
+            best_p_val = i
 
     return best_p_val
 
@@ -295,7 +373,7 @@ def ProjectEuler_ChampernowneConstant_40() -> int:
     return result
 
 
-if __name__ == "__main__":
+def main():
     sol_31 = ProjectEuler_CoinSums_31()
     print(f"sol_31 = {sol_31}")
 
@@ -325,3 +403,7 @@ if __name__ == "__main__":
 
     sol_40 = ProjectEuler_ChampernowneConstant_40()
     print(f"sol_40 = {sol_40}")
+
+
+if __name__ == "__main__":
+    main()
