@@ -5,6 +5,18 @@ import math
 from pathlib import Path
 from ProjectEuler_Helpers import check_prime
 
+# Returns true if 'val' is a 0 to 9 pandigital
+def pandigital(val: int) -> bool:
+    result = 0
+
+    while (val > 0):
+        result |= 1 << ((val % 10))
+        val //= 10
+
+    # If pandigital must have (result == 0b1111111111)
+    return (result == 0x3FF)
+
+
 def ProjectEuler_PandigitalPrime_41() -> int:
     pandigital_prime = 0
     combos = permutations([1,2,3,4,5,6,7],7)
@@ -44,7 +56,7 @@ def ProjectEuler_CodedTriangleNumbers_42() -> int:
     triangle_nums = set()
     n = 1
     curr_triangle_num = 1
-    
+
     while (curr_triangle_num <= max_word_val):
         triangle_nums.add(curr_triangle_num)
         n += 1
@@ -59,23 +71,52 @@ def ProjectEuler_CodedTriangleNumbers_42() -> int:
 
 
 def ProjectEuler_SubstringDivisibility_43() -> int:
-    pandigitals = permutations(["0","1","2","3","4","5","6","7","8","9"], 10)
-    evens = {"0","2","4","6","8"}
     pandigital_sum = 0
 
-    for val in pandigitals:
-        if (val[0] == "0") or (val[3] not in evens) or ((val[5] != "0") and (val[5] != "5")):
-            continue
+    # Eliminated possible values for each digit based on criteria
+    d1_digits = [1,2,3,4,6,7,8,9]
+    d2_digits = [0,1,2,3,4,6,7,8,9]
+    d3_digits = [0,1,2,3,4,6,7,8,9]
+    d4_digits = [0,2,4,6,8]
+    d5_digits = [3,9]
+    d6 = 5
+    d7_digits = [2,7]
 
-        if ((int(val[2]+ val[3]+ val[4]) % 3) == 0):
-            if ((int(val[4]+ val[5]+ val[6]) % 7) == 0):
-                if ((int(val[5]+ val[6]+ val[7]) % 11) == 0):
-                    if ((int(val[6]+ val[7]+ val[8]) % 13) == 0):
-                        if ((int(val[7]+ val[8]+ val[9]) % 17) == 0):
-                            curr_pan = ""
-                            for digit in val:
-                                curr_pan += digit
-                            pandigital_sum += int(curr_pan)
+    # Iterate over 3-digit numbers that are divisble by 17
+    for d8_9_10 in range(102, 1000, 17):
+        for d7 in d7_digits:
+            # Check d6, d7, d8, d9, and d10 values are valid
+            div_11 = (d6*100) + (d7*10) + (d8_9_10//100)
+            div_13 = (d7*100) + (d8_9_10//10)
+
+            if ((div_11 % 11) != 0) or ((div_13 % 13) != 0):
+                continue
+
+            for d5 in d5_digits:
+                # Check d5 value is valid
+                div_7 = (d5*100) + (d6*10) + d7
+                if ((div_7 % 7) != 0):
+                    continue
+
+                # Iterate over even digits for d4
+                for d4 in d4_digits:
+                    for d3 in d3_digits:
+                        # Check d3 value is valid
+                        div_3 = d3+d4+d5
+                        if ((div_3 % 3) != 0):
+                            continue
+
+                        for d1 in d1_digits:
+                            for d2 in d2_digits:
+                                # Calculate 10 digit val
+                                d234 = (d2*100) + (d3*10) + d4
+                                d567 = (d5*100) + (d6*10) + d7
+                                val = (d1*1000000000) + (d234*1000000) + (d567*1000) + d8_9_10
+
+                                # Ensure val is pandigital
+                                if (pandigital(val)):
+                                    pandigital_sum += val
+
     return pandigital_sum
 
 
@@ -87,7 +128,7 @@ def ProjectEuler_PentagonNumbers_44() -> int:
     pent_nums_set = set()
 
     for i in range(1, n+1):
-        curr_val = (i * ((3*i) - 1)) / 2
+        curr_val = (i * ((3*i) - 1)) // 2
         pent_nums.append(curr_val)
         pent_nums_set.add(curr_val)
 
@@ -97,7 +138,7 @@ def ProjectEuler_PentagonNumbers_44() -> int:
             val_j = pent_nums[j]
             if ((val_i + val_j) in pent_nums_set) and ((val_j - val_i) in pent_nums_set):
                 if ((val_j - val_i) < D):
-                    D = int(val_j - val_i)
+                    D = val_j - val_i
 
     return D
 
@@ -157,42 +198,36 @@ def ProjectEuler_GoldbachOtherConjecture_46() -> int:
         else:
             result = i
             break
-    
+
     return result
 
 
 def ProjectEuler_DistinctPrimesFactors_47() -> int:
-    try:
-        input_file = open(Path("precomputed_primes/primes_1_million.txt"), "r")
-        primes = json.load(input_file)
-        input_file.close()
-    except FileNotFoundError:
-        print(f"Error: could not find list of all prime numbers less than one million")
-        return -1
-
     k = 4
     n = 135000
+    num_pfactors = [0] * n
     valid_consec_nums = 0
 
     for i in range(2, n):
-        curr_val = i
-        prime_factors = set()
-        prime_idx = 0
+        # i is prime
+        if (num_pfactors[i] == 0):
+            valid_consec_nums = 0
 
-        while (curr_val != 1) and (len(prime_factors) <= k):
-            if ((curr_val % primes[prime_idx]) == 0):
-                prime_factors.add(primes[prime_idx])
-                curr_val /= primes[prime_idx]
-            else:
-                prime_idx += 1
+            # Increment number of factors for all multiples of i up to n
+            for j in range(i*2, n, i):
+                num_pfactors[j] += 1
 
-        if (len(prime_factors) == k):
+        # i is not prime but does not have 'k' distinct p_factors
+        elif (num_pfactors[i] < k):
+            valid_consec_nums = 0
+
+        # i has 'k' distinct p_factors
+        elif (num_pfactors[i] == k):
             valid_consec_nums += 1
             if (valid_consec_nums == k):
                 return (i - k + 1)
-        else:
-            valid_consec_nums = 0
 
+    # No solution found, return -1
     return -1
 
 
@@ -238,11 +273,11 @@ def ProjectEuler_ConsecutivePrimeSum_50() -> int:
     except FileNotFoundError:
         print(f"Error: could not find list of all prime numbers less than one million")
         return -1
-    
+
     n = len(primes)
     max_val = primes[-1]
     max_consecutive_prime_sum = 0
-    
+
     for k in range(21, 1000):
         prime_sum = 0
         for i in range(k):
@@ -267,7 +302,7 @@ def ProjectEuler_ConsecutivePrimeSum_50() -> int:
     return max_consecutive_prime_sum
 
 
-if __name__ == "__main__":
+def main():
     sol_41 = ProjectEuler_PandigitalPrime_41()
     print(f"sol_41 = {sol_41}")
 
@@ -297,3 +332,7 @@ if __name__ == "__main__":
 
     sol_50 = ProjectEuler_ConsecutivePrimeSum_50()
     print(f"sol_50 = {sol_50}")
+
+
+if __name__ == "__main__":
+    main()
