@@ -3,7 +3,7 @@ from collections import Counter
 import json
 import math
 from pathlib import Path
-from ProjectEuler_Helpers import check_prime, concatenate_integers
+from ProjectEuler_Helpers import concatenate_integers
 import re
 
 def check_prime_family(val: list, indices: list, memo: set, prime_family_size: int) -> bool:
@@ -208,17 +208,62 @@ class PokerHand():
         return True
 
 
-def check_prime_pair(new_val: int, prev_vals: set, memo: set) -> bool:
-    for complement in prev_vals:
-        # Check concatentating x and y
-        val1 = concatenate_integers(new_val, complement)
-        if val1 not in memo:
+# Helper function that determines if input parameter is prime
+# This prime number checker uses the Miller–Rabin primality test
+def check_likely_prime(num: int) -> bool:
+    # Smallest and only even prime number is 2
+    if (num < 2):
+        return False
+    elif (num == 2):
+        return True
+    elif ((num % 2) == 0):
+        return False
+    elif (num >= 4759123141):
+        print(f"Warning: primality check not valid for {num}. Must increase witness set.")
+
+    # If (num < 4,759,123,141): only need to test witnesses a = [2, 7, 61]
+    a_vals = [2,7,61]
+
+    # Calculate constants 's' and 'd'
+    d = (num-1) // 2
+    s = 1
+
+    while ((d % 2) == 0):
+        d //= 2
+        s += 1
+
+    # Test each 'a' value against input num
+    for a in a_vals:
+        # Only test 'a' values in range [2, n-2]
+        if (a >= (num-1)):
+            break
+
+        # Initialize: x = (a^d) % num
+        x = pow(a, d, mod=num)
+
+        # Check congruence relationship 's' times
+        for _ in range(s):
+            y = pow(x, 2, mod=num)
+            if (y == 1) and (x != 1) and (x != (num-1)):
+                return False
+            x = y
+
+        if (y != 1):
             return False
 
-        # Check concatentating y and x
-        val2 = concatenate_integers(complement, new_val)
-        if val2 not in memo:
-            return False
+    return True
+
+
+def check_prime_pair(x: int, y: int, memo: set) -> bool:
+    # Check concatentating x and y
+    val1 = concatenate_integers(x, y)
+    if val1 not in memo:
+        return False
+
+    # Check concatentating y and x
+    val2 = concatenate_integers(y, x)
+    if val2 not in memo:
+        return False
 
     return True
 
@@ -408,11 +453,17 @@ def ProjectEuler_SpiralPrimes_58() -> int:
     while (ratio >= threshold):
         curr_side_length += 2
 
-        for _ in range(num_sides):
+        # Iterate and check primality of first three diagonal elements only
+        # Fourth diagonal element will always be square (9, 25, 49, etc.) -> not prime
+        for _ in range(num_sides-1):
             curr_val += curr_side_length - 1
-            if check_prime(curr_val):
+            if check_likely_prime(curr_val):
                 num_primes += 1
 
+        # Skip over fourth diagonal value
+        curr_val += curr_side_length - 1
+
+        # Calculate new ratio for current sidelength
         num_diag_vals += 4
         ratio = num_primes / num_diag_vals
 
@@ -473,72 +524,62 @@ def ProjectEuler_PrimePairSets_60() -> int:
         input_file.close()
 
         input_file = open(Path("precomputed_primes/primes_10_thousand.txt"), "r")
-        prime_test_list = json.load(input_file)
+        prime_list = json.load(input_file)
         input_file.close()
     except FileNotFoundError:
         print(f"Error: could not find lists of prime numbers")
         return -1
 
-    n = len(prime_test_list)
+    # Initialize variables
+    n = len(prime_list)
     minimum_sum = math.inf
 
+    # Iterate over all pairs of primes and see if they also concatenate into primes
+    # Save result in boolean matrix. Assume we always check [i,j] pairs where i < j
+    isConcatPrime = [[False] * n for _ in range(n)]
+    for i in range(n):
+        for j in range(i+1, n):
+            if check_prime_pair(prime_list[i], prime_list[j], prime_check_set):
+                isConcatPrime[i][j] = True
+
     # Get 1st prime number in sequence
-    for a in range(n):
-        prime_a = prime_test_list[a]
-        sum_a = prime_a
-
-        if (sum_a >= minimum_sum):
-            break
-
+    for a in range(n-4):
         # Get 2nd prime number in sequence
-        for b in range(a+1, n):
-            prime_b = prime_test_list[b]
-            sum_b = sum_a + prime_b
-
-            if (sum_b >= minimum_sum):
-                break
-
-            if not (check_prime_pair(prime_b, {prime_a}, prime_check_set)):
+        for b in range(a+1, n-3):
+            if not (isConcatPrime[a][b]):
                 continue
 
             # Get 3rd prime number in sequence
-            for c in range(b+1, n):
-                prime_c = prime_test_list[c]
-                sum_c = sum_b + prime_c
-
+            for c in range(b+1, n-2):
+                sum_c = prime_list[a] + prime_list[b] + prime_list[c]
                 if (sum_c >= minimum_sum):
                     break
 
-                if not (check_prime_pair(prime_c, {prime_a, prime_b}, prime_check_set)):
+                if not (isConcatPrime[a][c] and isConcatPrime[b][c]):
                     continue
 
                 # Get 4th prime number in sequence
-                for d in range(c+1, n):
-                    prime_d = prime_test_list[d]
-                    sum_d = sum_c + prime_d
-
+                for d in range(c+1, n-1):
+                    sum_d = sum_c + prime_list[d]
                     if (sum_d >= minimum_sum):
                         break
 
-                    if not (check_prime_pair(prime_d, {prime_a, prime_b, prime_c}, prime_check_set)):
+                    if not (isConcatPrime[a][d] and isConcatPrime[b][d] and isConcatPrime[c][d]):
                         continue
 
                     # Get 5th prime number in sequence
                     for e in range(d+1, n):
-                        prime_e = prime_test_list[e]
-                        sum_e = sum_d + prime_e
-
+                        sum_e = sum_d + prime_list[e]
                         if (sum_e >= minimum_sum):
                             break
 
-                        if (check_prime_pair(prime_e, {prime_a, prime_b, prime_c, prime_d}, prime_check_set)):
-                            if (sum_e < minimum_sum):
-                                minimum_sum = sum_e
+                        if (isConcatPrime[a][e] and isConcatPrime[b][e] and isConcatPrime[c][e] and isConcatPrime[d][e]):
+                            minimum_sum = sum_e
 
     return minimum_sum
 
 
-if __name__ == "__main__":
+def main():
     sol_51 = ProjectEuler_PrimeDigitReplacements_51()
     print(f"sol_51 = {sol_51}")
 
@@ -568,3 +609,7 @@ if __name__ == "__main__":
 
     sol_60 = ProjectEuler_PrimePairSets_60()
     print(f"sol_60 = {sol_60}")
+
+
+if __name__ == "__main__":
+    main()
