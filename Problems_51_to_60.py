@@ -1,5 +1,5 @@
 # Keshav Pandey
-from collections import Counter
+from collections import Counter, defaultdict
 import json
 import math
 from pathlib import Path
@@ -524,57 +524,50 @@ def ProjectEuler_PrimePairSets_60() -> int:
         input_file.close()
 
         input_file = open(Path("precomputed_primes/primes_10_thousand.txt"), "r")
-        prime_list = json.load(input_file)
+        p_list = json.load(input_file)
         input_file.close()
     except FileNotFoundError:
         print(f"Error: could not find lists of prime numbers")
         return -1
 
     # Initialize variables
-    n = len(prime_list)
+    n = len(p_list)
     minimum_sum = math.inf
 
     # Iterate over all pairs of primes and see if they also concatenate into primes
-    # Save result in boolean matrix. Assume we always check [i,j] pairs where i < j
-    isConcatPrime = [[False] * n for _ in range(n)]
+    # Save results in dict where: key = i; value = set(j that concat correctly with i, for j>i)
+    p_pairs = defaultdict(set)
     for i in range(n):
         for j in range(i+1, n):
-            if check_prime_pair(prime_list[i], prime_list[j], prime_check_set):
-                isConcatPrime[i][j] = True
+            if check_prime_pair(p_list[i], p_list[j], prime_check_set):
+                p_pairs[p_list[i]].add(p_list[j])
 
     # Get 1st prime number in sequence
-    for a in range(n-4):
+    for a, b_set in p_pairs.items():
         # Get 2nd prime number in sequence
-        for b in range(a+1, n-3):
-            if not (isConcatPrime[a][b]):
-                continue
+        for b in b_set:
+            c_set = b_set.intersection(p_pairs.get(b, set()))
 
             # Get 3rd prime number in sequence
-            for c in range(b+1, n-2):
-                sum_c = prime_list[a] + prime_list[b] + prime_list[c]
+            for c in c_set:
+                sum_c = a + b + c
                 if (sum_c >= minimum_sum):
-                    break
-
-                if not (isConcatPrime[a][c] and isConcatPrime[b][c]):
                     continue
+                d_set = c_set.intersection(p_pairs.get(c, set()))
 
                 # Get 4th prime number in sequence
-                for d in range(c+1, n-1):
-                    sum_d = sum_c + prime_list[d]
+                for d in d_set:
+                    sum_d = sum_c + d
                     if (sum_d >= minimum_sum):
-                        break
-
-                    if not (isConcatPrime[a][d] and isConcatPrime[b][d] and isConcatPrime[c][d]):
                         continue
+                    e_set = d_set.intersection(p_pairs.get(d, set()))
 
                     # Get 5th prime number in sequence
-                    for e in range(d+1, n):
-                        sum_e = sum_d + prime_list[e]
+                    for e in e_set:
+                        sum_e = sum_d + e
                         if (sum_e >= minimum_sum):
-                            break
-
-                        if (isConcatPrime[a][e] and isConcatPrime[b][e] and isConcatPrime[c][e] and isConcatPrime[d][e]):
-                            minimum_sum = sum_e
+                            continue
+                        minimum_sum = sum_e
 
     return minimum_sum
 
