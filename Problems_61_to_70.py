@@ -1,5 +1,5 @@
 # Keshav Pandey
-from collections import defaultdict, deque, Counter
+from collections import defaultdict, deque
 from itertools import permutations
 import json
 import math
@@ -34,21 +34,6 @@ def get_next_continued_fraction(sqr_const: int, sqrt_const: int, num_val: int, d
     return (num_val, denom_val, next_a)
 
 
-def get_phi_and_phi_ratio(val: int, p_factors: set) -> tuple[int, int]:
-    # Find phi(val) and val/phi(val)
-    phi = 1
-    ratio = 1
-
-    for p in p_factors:
-        phi *= 1 - (1/p)
-        ratio *= p / (p-1)
-
-    phi = val * phi
-    phi = round(phi)
-
-    return (phi, ratio)
-
-
 # a_vals starts from a_1 and goes to desired a_n
 def get_convergent_fraction(a0: int, a_vals: list) -> tuple[int, int]:
     # Initialize numerator and denominator to last (most nested) fraction value
@@ -63,6 +48,37 @@ def get_convergent_fraction(a0: int, a_vals: list) -> tuple[int, int]:
     numerator += a0 * denominator
 
     return (numerator, denominator)
+
+
+# Helper function that calculates phi and phi_ratio for val with only 2 prime factors
+def get_phi_and_phi_ratio(val: int, p_factor1: int, p_factor2: int) -> tuple[int, int]:
+    # Find phi(val) and val/phi(val)
+    phi = (p_factor1 - 1) * (p_factor2 - 1)
+    ratio = val / phi
+    return (phi, ratio)
+
+
+# Helper function that determines if num1 and num2 are permutations of each other
+# Inputs num1, num2 must be > 0
+def isPermutation(num1: int, num2: int) -> bool:
+    digits = [0] * 10
+
+    # Get count of each digit in num1
+    while (num1 > 0):
+        digits[num1 % 10] += 1
+        num1 //= 10
+
+    # Subtract count of each digit in num2
+    while (num2 > 0):
+        digits[num2 % 10] -= 1
+        num2 //= 10
+
+    # If not exactly 0 digits left, num1 and num2 cannot be permutations
+    for digit_count in digits:
+        if (digit_count):
+            return False
+
+    return True
 
 
 def ProjectEuler_CyclicalFigurateNumbers_61() -> int:
@@ -170,7 +186,7 @@ def ProjectEuler_OddPeriodSquareRoots_64() -> int:
     n = 10000
     num_odd_period_sqrt = 0
 
-    for i in range(1, n+1):
+    for i in range(2, n+1):
         # Constants for getting continued fractions of i
         sqr_root = math.sqrt(i)
         a0 = math.floor(sqr_root)
@@ -333,8 +349,7 @@ def ProjectEuler_Magic5GonRing_68() -> int:
 
     for combo in combos:
         # Ensure clockwise string representation starts from index 0
-        min_ext_node = min(combo[0], combo[2], combo[4], combo[6], combo[8])
-        if (combo[0] != min_ext_node):
+        if (combo[0] > combo[2]) or (combo[0] > combo[4]) or (combo[0] > combo[6]) or (combo[0] > combo[8]):
             continue
 
         # Ensure '10' is in the outer ring so we get a 16-digit string instead of a 17-digit string
@@ -401,38 +416,38 @@ def ProjectEuler_TotientPermutation_70() -> int:
     # And these smaller prime factors will greatly reduce phi which is undesirable
     try:
         input_file = open(Path("precomputed_primes/primes_10_thousand.txt"), "r")
-        primes_list = json.load(input_file)
+        primes = json.load(input_file)
         input_file.close()
     except FileNotFoundError:
         print(f"Error: could not find list of prime numbers")
         return -1
 
-    n = 10000000
+    n_max = 10000000
     min_ratio = math.inf
     min_ratio_val = -1
 
+    # Assume p1, p2 will not be small primes as this will greatly reduce phi
+    # So, start searching from 100th prime onwards
+    min_prime_idx = 100
+
     # Assume solution will have two prime factors only
     # i.e. (soln = p1^1 * p2^1) or (soln = p1^2)
-    for i in range(len(primes_list)):
-        for j in range(i, len(primes_list)):
-            prime_i = primes_list[i]
-            prime_j = primes_list[j]
-
-            curr_n = prime_i * prime_j
-            if (curr_n > n) or ((curr_n % 2) == 0):
+    for i in range(min_prime_idx, len(primes)):
+        for j in range(i, len(primes)):
+            curr_n = primes[i] * primes[j]
+            if (curr_n > n_max):
                 break
 
-            prime_set = {prime_i, prime_j}
-            curr_phi, curr_ratio = get_phi_and_phi_ratio(curr_n, prime_set)
+            curr_phi, curr_ratio = get_phi_and_phi_ratio(curr_n, primes[i], primes[j])
 
-            if (curr_ratio < min_ratio) and (Counter(str(curr_n)) == Counter(str(curr_phi))):
+            if (curr_ratio < min_ratio) and (isPermutation(curr_n, curr_phi)):
                 min_ratio = curr_ratio
                 min_ratio_val = curr_n
 
     return min_ratio_val
 
 
-if __name__ == "__main__":
+def main():
     sol_61 = ProjectEuler_CyclicalFigurateNumbers_61()
     print(f"sol_61 = {sol_61}")
 
@@ -462,3 +477,7 @@ if __name__ == "__main__":
 
     sol_70 = ProjectEuler_TotientPermutation_70()
     print(f"sol_70 = {sol_70}")
+
+
+if __name__ == "__main__":
+    main()
