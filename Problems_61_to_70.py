@@ -1,5 +1,5 @@
 # Keshav Pandey
-from collections import defaultdict, deque
+from collections import defaultdict
 from itertools import permutations
 import json
 import math
@@ -199,30 +199,16 @@ def ProjectEuler_OddPeriodSquareRoots_64() -> int:
         curr_num = 1
         curr_denom = a0      # technically -a0, but set to +a0 for simpler code
 
-        # Initialize deques for storing num/denom constants at each iteration
-        first_consts = deque()
-        second_consts = deque()
-
-        # Solve and store constants for first two continued fraction iteraions
-        curr_num, curr_denom, _ = get_next_continued_fraction(i, sqr_root, curr_num, curr_denom)
-        first_consts.append((curr_num, curr_denom))
-
-        curr_num, curr_denom, _ = get_next_continued_fraction(i, sqr_root, curr_num, curr_denom)
-        second_consts.append((curr_num, curr_denom))
+        # Initialize set for storing num/denom constants at each iteration
+        consts_set = set()
 
         # While have not found sequence of repetition for continued fractions
-        while (first_consts != second_consts):
-            first_consts.append(second_consts.popleft())
-
-            # Solve and store constants for next two continued fraction iteraions
+        while ((curr_num, curr_denom) not in consts_set):
+            consts_set.add((curr_num, curr_denom))
             curr_num, curr_denom, _ = get_next_continued_fraction(i, sqr_root, curr_num, curr_denom)
-            second_consts.append((curr_num, curr_denom))
-
-            curr_num, curr_denom, _ = get_next_continued_fraction(i, sqr_root, curr_num, curr_denom)
-            second_consts.append((curr_num, curr_denom))
 
         # Get period length of repetition sequence. If odd, increment counter
-        period_len = len(first_consts)
+        period_len = len(consts_set)
         if ((period_len % 2) == 1):
             num_odd_period_sqrt += 1
 
