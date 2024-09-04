@@ -43,44 +43,25 @@ def calc_digit_factorial(num: int, digit_factorials: list) -> int:
     return result
 
 
-# TODO: optimize based on problem PDF and solution to #73
+# TODO: optimize to O(1) time
 def ProjectEuler_OrderedFractions_71() -> int:
-    # Closest fraction to 3/7 will have large denominator: check highest denom values only
-    min_d = 800000
+    # Searching for a fraction that is just less than 3/7
+    upper_bound_num = 3
+    upper_bound_denom = 7
+
+    # Solution should be a fraction with denominator <= max_d
     max_d = 1000000
 
-    # Variable to store final result
-    best_num = -1
+    # For fractions with denom <= 8, we are told the fraction to the left of 3/7 is 2/5
+    result_num = 2
+    result_denom = 5
 
-    # As denominator 'd' increases one-by-one, the 'best' numerator will only change slightly
-    # from previous 'd' iteration. Use this var to store next numerator val to start checking from
-    curr_min_n = 1
+    # Utilize Farey Series:
+    while ((result_denom+upper_bound_denom) <= max_d):
+        result_num += upper_bound_num
+        result_denom += upper_bound_denom
 
-    # Prune checking values greater than or less than these threshold values
-    min_const_val = 0.428571
-    max_const_val = 3/7
-
-    for d in range(min_d, max_d+1):
-        for n in range(curr_min_n, d):
-            quotient = n / d
-
-            if (quotient < min_const_val):
-                continue
-
-            if (quotient >= max_const_val):
-                break
-
-            min_const_val = quotient
-
-            curr_gcd = math.gcd(n, d)
-            if (curr_gcd == 1):
-                best_num = n
-            else:
-                best_num = n // curr_gcd
-
-        curr_min_n = max(1, n-50)
-
-    return best_num
+    return result_num
 
 
 def ProjectEuler_CountingFractions_72() -> int:
