@@ -43,7 +43,6 @@ def calc_digit_factorial(num: int, digit_factorials: list) -> int:
     return result
 
 
-# TODO: optimize to O(1) time
 def ProjectEuler_OrderedFractions_71() -> int:
     # Searching for a fraction that is just less than 3/7
     upper_bound_num = 3
@@ -57,37 +56,36 @@ def ProjectEuler_OrderedFractions_71() -> int:
     result_denom = 5
 
     # Utilize Farey Series:
-    while ((result_denom+upper_bound_denom) <= max_d):
-        result_num += upper_bound_num
-        result_denom += upper_bound_denom
+    farey_factor = (max_d - result_denom) // upper_bound_denom
+    result_num += upper_bound_num * farey_factor
+    result_denom += upper_bound_denom * farey_factor
 
     return result_num
 
 
 def ProjectEuler_CountingFractions_72() -> int:
-    try:
-        input_file = open(Path("precomputed_primes/primes_1_million.txt"), "r")
-        primes_list = json.load(input_file)
-        input_file.close()
-    except FileNotFoundError:
-        print(f"Error: could not find list of prime numbers")
-        return -1
-
+    # Count number of reduced proper fractions with denom <= max_d
     max_d = 1000000
     fraction_count = 0
-    primes_set = set(primes_list)
-    memo = dict()
 
-    for d in range(2, max_d+1):
-        if (d in primes_set):
-            fraction_count += (d-1)
-            continue
+    # Initialize totient array to value of its index (t[i] = i)
+    totients = [i for i in range(max_d+1)]
 
-        d_factors = get_prime_factors_set(d, primes_list, memo)
-        memo[d] = d_factors
-        fraction_count += get_phi(d, d_factors)
+    # Sum totients for all denom <= max_d
+    for i in range(2, max_d+1):
+        if (totients[i] != i):
+            # i is a composite number, increment fraction_count by phi(i)
+            fraction_count += totients[i]
+        else:
+            # i is a prime number, will have a reduced fraction for all (num < i)
+            fraction_count += i-1
 
-    return fraction_count
+            # Account for all multiples of i
+            phi_const = (i-1) / i
+            for mult in range(i*2, max_d+1, i):
+                totients[mult] *= phi_const
+
+    return int(fraction_count)
 
 
 def ProjectEuler_CountingFractionsInRange_73() -> int:
