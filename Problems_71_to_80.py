@@ -5,29 +5,6 @@ import math
 from pathlib import Path
 import sys
 
-def get_prime_factors_set(val: int, prime_list: list, memo: dict) -> set:
-    prime_factors = set()
-    for prime in prime_list:
-        if ((val % prime) == 0):
-            val //= prime
-            prime_factors.update(memo.get(val, {val}))
-            prime_factors.add(prime)
-            return prime_factors
-
-    return -1
-
-
-def get_phi(val: int, p_factors: set) -> int:
-    # Find phi(val)
-    phi = val
-
-    for p in p_factors:
-        phi *= 1 - (1/p)
-
-    phi = round(phi)
-    return phi
-
-
 # Accepts positive integers only
 def calc_digit_factorial(num: int, digit_factorials: list) -> int:
     if (num == 0):
@@ -88,19 +65,37 @@ def ProjectEuler_CountingFractions_72() -> int:
     return int(fraction_count)
 
 
+# TODO: can optimize further
 def ProjectEuler_CountingFractionsInRange_73() -> int:
+    # Count number of reduced proper fractions with denom <= max_d
     max_d = 12000
     fraction_count = 0
 
-    for d in range(2, max_d+1):
-        # Get bounds for numerator value based on current 'd' and problem requirements
-        min_num = math.floor(d / 3) + 1
-        max_num = math.ceil(d / 2)
+    # Given lower bound fraction = 1/3
+    a = 1
+    b = 3
 
-        for n in range(min_num, max_num):
-            curr_gcd = math.gcd(n, d)
-            if (curr_gcd == 1):
-                fraction_count += 1
+    # Given upper bound fraction = 1/2
+    c0 = 1
+    d0 = 2
+
+    # Calculate fraction immediately to right of 1/3 in Farey series: (c/d)
+    k = (max_d - d0) // b
+    c = c0 + (k*a)
+    d = d0 + (k*b)
+
+    # While (c/d != upper bound), calculate next fraction in Farey Series
+    while (c != c0) or (d != d0):
+        fraction_count += 1
+
+        # Calculate next fraction
+        k = (max_d + b) // d
+        e = k*c - a
+        f = k*d - b
+
+        # Update variables
+        a, b = c, d
+        c, d = e, f
 
     return fraction_count
 
@@ -143,11 +138,16 @@ def ProjectEuler_DigitFactorialChains_74() -> int:
 
 
 def ProjectEuler_SingularIntegerRightTriangles_75() -> int:
-    primitive_triple_sums = list()
+    # Initialize constants
     max_L = 1500000
+    m_limit = 875
 
-    # Generate all primitive triangles with sums within maximum wire length
-    for m in range(1, max_L):
+    # The ith index represents wire length, the value at this index represents number of triangles
+    # that can be formed with exactly this length
+    lengths = [0] * (max_L+1)
+
+    # Generate all primitive triangles with perimeters <= max_L
+    for m in range(1, m_limit):
         if ((m % 2) == 0):
             start = 1
         else:
@@ -157,25 +157,12 @@ def ProjectEuler_SingularIntegerRightTriangles_75() -> int:
             if (math.gcd(m, n) != 1):
                 continue
 
-            a = int(math.pow(m, 2) - math.pow(n, 2))
-            b = 2 * m * n
-            c = int(math.pow(m, 2) + math.pow(n, 2))
-            curr_sum = a+b+c
-
-            if (curr_sum <= max_L):
-                primitive_triple_sums.append(curr_sum)
-            else:
+            perimeter = 2*m*(m+n)
+            if (perimeter > max_L):
                 break
 
-    # The ith index represents wire length, the value at this index represents number of triangles
-    # that can be formed with exactly this length
-    lengths = [0] * (max_L+1)
-
-    for curr_sum in primitive_triple_sums:
-        curr_product = curr_sum
-        while (curr_product <= max_L):
-            lengths[curr_product] += 1
-            curr_product += curr_sum
+            for p_mult in range(perimeter, max_L+1, perimeter):
+                lengths[p_mult] += 1
 
     # Get number of wire lengths with exactly 1 triangle summing to that wire length
     result = 0
