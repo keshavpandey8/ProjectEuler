@@ -5,13 +5,8 @@ import math
 from pathlib import Path
 import sys
 
-# Accepts positive integers only
+# Input num must be a positive integer
 def calc_digit_factorial(num: int, digit_factorials: list) -> int:
-    if (num == 0):
-        return 1
-    elif (num < 0):
-        return -1
-
     result = 0
     while (num > 0):
         result += digit_factorials[num % 10]
@@ -102,9 +97,9 @@ def ProjectEuler_CountingFractionsInRange_73() -> int:
 
 def ProjectEuler_DigitFactorialChains_74() -> int:
     # Pre-calculate factorial value for each digit for faster iterations
-    digit_factorials = [0] * 10
-    for i in range(len(digit_factorials)):
-        digit_factorials[i] = math.factorial(i)
+    digit_factorials = [1] * 10
+    for i in range(2, 10):
+        digit_factorials[i] = i * digit_factorials[i-1]
 
     # Initialize variables to define problem
     n = 1000000
@@ -112,26 +107,48 @@ def ProjectEuler_DigitFactorialChains_74() -> int:
     num_k_chains = 0
 
     # Store all integers known to lead to infinite loop in memoization table
-    memo = {1: 1, 2: 2, 40585: 1, 145: 1, 169: 3, 363601: 3, 1454: 3, 871: 2, 45361: 2, 872: 2, 45362: 2}
+    memo = [-1] * 2180000
+
+    # 1 (-> 1) ; 2 (-> 2)
+    memo[1] = 1
+    memo[2] = 1
+
+    # 145 (-> 145) ; 40585 (-> 40585)
+    memo[145] = 1
+    memo[40585] = 1
+
+    # 169 -> 363601 -> 1454 (-> 169)
+    memo[169] = 3
+    memo[363601] = 3
+    memo[1454] = 3
+
+    # 871 -> 45361 (-> 871)
+    memo[871] = 2
+    memo[45361] = 2
+
+    # 872 -> 45362 (-> 872)
+    memo[872] = 2
+    memo[45362] = 2
 
     # Check every value up to 'n' for an exactly 'k' length chain
-    for i in range(n):
-        if (i in memo):
+    for i in range(3, n):
+        if (memo[i] != -1):
             continue
 
         curr_chain = list()
         curr_val = i
 
-        while (curr_val not in memo):
+        while (memo[curr_val] == -1):
             curr_chain.append(curr_val)
             curr_val = calc_digit_factorial(curr_val, digit_factorials)
 
-        chain_len = len(curr_chain) + memo.get(curr_val)
+        init_chain_len = len(curr_chain)
+        chain_len = init_chain_len + memo[curr_val]
 
         if (chain_len == k):
             num_k_chains += 1
 
-        for j in range(len(curr_chain)):
+        for j in range(init_chain_len):
             memo[curr_chain[j]] = chain_len - j
 
     return num_k_chains
@@ -244,44 +261,44 @@ def ProjectEuler_PrimeSummations_77() -> int:
     return result
 
 
-# TODO: can optimize further with improved p2/p3 term calculation...check pentagonal nums in forum
 def ProjectEuler_CoinPartitions_78() -> int:
-    max_n = 60000
+    max_n = 57500
     div_val = 1000000
     result = -1
 
     # Store and memoize reused calculation terms here:
-    p2_k_term = [0] * (max_n+1)
-    p3_k_term = [0] * (max_n+1)
+    p2 = [0] * (max_n+1)
+    p3 = [0] * (max_n+1)
 
-    for k in range(1, max_n+1):
-        p2_k_term[k] = (k*((3*k)-1)) // 2
-        p3_k_term[k] = (k*((3*k)+1)) // 2
+    p2[1] = 1
+    p3[1] = 2
+    k1 = 4
+
+    for k in range(2, max_n+1):
+        p2[k] = p2[k-1] + k1
+        p3[k] = p3[k-1] + k1 + 1
+        k1 += 3
 
     # Note: number of partitions for ((n < 0) == 0) and for ((n = 0) == 1)
     memo = [0] * (max_n+1)
     memo[0] = 1
 
+    # Iterate over values of 'n' until find an 'n' where (partitions(n) % div_val) == 0
     for n in range(1, max_n+1):
         curr_partitions = 0
-        max_k = math.ceil(math.sqrt(n))
+        k = 1
+        p1 = 1
 
-        for k in range(1, max_k+1):
-            # Term1 = (-1)^k+1
-            # Term2 = n-(1/2)*k*(3k-1)
-            # Term3 = n-(1/2)*k*(3k+1)
-            p1 = 1 if (k % 2) else -1
-            p2 = n - p2_k_term[k]
-            p3 = n - p3_k_term[k]
+        # Combine terms and accumulate current number of partitions
+        while (n >= p3[k]):
+            curr_partitions += p1 * (memo[n-p2[k]] + memo[n-p3[k]])
+            k += 1
+            p1 *= -1
 
-            # Get number of partitions for p2 and p3 values
-            p2_memo = 0 if (p2 < 0) else memo[p2]
-            p3_memo = 0 if (p3 < 0) else memo[p3]
+        if (n >= p2[k]):
+            curr_partitions += p1 * memo[n-p2[k]]
 
-            # Combine terms and accumulate current number of partitions
-            curr_partitions += p1 * (p2_memo + p3_memo)
-
-        # Save current number of partitions in memoization for future calculations
+        # Save current number of partitions in memo table for future calculations
         memo[n] = curr_partitions % div_val
         if (memo[n] == 0):
             result = n
