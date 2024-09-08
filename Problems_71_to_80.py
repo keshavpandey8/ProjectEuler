@@ -1,16 +1,78 @@
 # Keshav Pandey
 import decimal
+from itertools import combinations_with_replacement
 import json
 import math
 from pathlib import Path
 import sys
 
-# Input num must be a positive integer
+# Concatenate list of digits into an integer. Ex: [1,3,4] = 134
+def concat_digits(digits: list) -> int:
+    result = 0
+    for digit in digits:
+        result = (result * 10) + digit
+
+    return result
+
+
+# Input num must be an integer greater than or equal to 0
 def calc_digit_factorial(num: int, digit_factorials: list) -> int:
+    if (num == 0):
+        return 1
+
     result = 0
     while (num > 0):
         result += digit_factorials[num % 10]
         num //= 10
+
+    return result
+
+
+# Calculates number of values with exactly r-digits that have a digit factorial chain length of k
+def digit_chains(combos: list, r: int, k: int, memo: list, digit_factorials: list):
+    result = 0
+
+    # Iterate over all r-length combinations of digits
+    for combo in combos:
+        # Valid combination of digits cannot have a leading 0
+        if (combo[0] == 0):
+            continue
+
+        # Convert list of digits into an integer value
+        curr_val = concat_digits(combo)
+        curr_chain = list()
+
+        # Find chain length for current digit combination
+        while (memo[curr_val] == -1):
+            curr_chain.append(curr_val)
+            curr_val = calc_digit_factorial(curr_val, digit_factorials)
+
+        init_chain_len = len(curr_chain)
+        chain_len = init_chain_len + memo[curr_val]
+
+        # If chain length equals target, calculate num permutations of current digit combination
+        if (chain_len == k):
+            permutations = digit_factorials[r]
+
+            # Account for repeated digits
+            digit_count = [0] * 10
+            for digit in combo:
+                digit_count[digit] += 1
+
+            for count in digit_count:
+                if (count > 1):
+                    permutations //= digit_factorials[count]
+
+            # Account for invalid permutations with a leading '0'
+            if (digit_count[0] > 0):
+                permutations = (permutations//r) * (r-digit_count[0])
+
+            # Increment result by number of unique permutations
+            result += permutations
+
+        # Update memo table with chain length for all values in current chain
+        for j in range(init_chain_len):
+            memo[curr_chain[j]] = chain_len - j
 
     return result
 
@@ -96,17 +158,16 @@ def ProjectEuler_CountingFractionsInRange_73() -> int:
 
 
 def ProjectEuler_DigitFactorialChains_74() -> int:
-    # Pre-calculate factorial value for each digit for faster iterations
-    digit_factorials = [1] * 10
+    # Pre-calculate factorial value for each digit
+    factorials = [1] * 10
     for i in range(2, 10):
-        digit_factorials[i] = i * digit_factorials[i-1]
+        factorials[i] = i * factorials[i-1]
 
     # Initialize variables to define problem
-    n = 1000000
     k = 60
     num_k_chains = 0
 
-    # Store all integers known to lead to infinite loop in memoization table
+    # Store all integers known to lead to infinite loop in memoization table:
     memo = [-1] * 2180000
 
     # 1 (-> 1) ; 2 (-> 2)
@@ -130,26 +191,15 @@ def ProjectEuler_DigitFactorialChains_74() -> int:
     memo[872] = 2
     memo[45362] = 2
 
-    # Check every value up to 'n' for an exactly 'k' length chain
-    for i in range(3, n):
-        if (memo[i] != -1):
-            continue
+    # Note: digit_factorial(974322) = digit_factorial(223479) = 367954
+    # This is because the result depends on the digits in each num, and not the order of the digits
+    # So rather than checking all num < n, we check all combinations of digits < n
+    digits = [9,8,7,6,5,4,3,2,1,0]
 
-        curr_chain = list()
-        curr_val = i
-
-        while (memo[curr_val] == -1):
-            curr_chain.append(curr_val)
-            curr_val = calc_digit_factorial(curr_val, digit_factorials)
-
-        init_chain_len = len(curr_chain)
-        chain_len = init_chain_len + memo[curr_val]
-
-        if (chain_len == k):
-            num_k_chains += 1
-
-        for j in range(init_chain_len):
-            memo[curr_chain[j]] = chain_len - j
+    # Iterate over all combinations of numbers with only 1 digit up to 6 digits
+    for i in range(1, 7):
+        curr_combos = list(combinations_with_replacement(digits, i))
+        num_k_chains += digit_chains(curr_combos, i, k, memo, factorials)
 
     return num_k_chains
 
