@@ -173,7 +173,6 @@ def ProjectEuler_PathSum_TwoWays_81() -> int:
     return dp[n-1]
 
 
-# TODO: optimize dp memory usage
 def ProjectEuler_PathSum_ThreeWays_82() -> int:
     try:
         input_file = open(Path("input_files/0082_matrix.txt"), "r")
@@ -183,39 +182,41 @@ def ProjectEuler_PathSum_ThreeWays_82() -> int:
         print(f"Error: could not find input matrix")
         return -1
 
-    # Initialize dynamic programming matrix
+    # Initialize dynamic programming lists
     n = len(matrix)
-    dp = [[-1] * n for _ in range(n)]
+    prev_col = list()
+    curr_col = [0] * n
 
     # Set base cases
     for i in range(n):
-        dp[i][0] = matrix[i][0]
+        curr_col[i] = matrix[i][0]
 
     # We iterate column by column instead of row by row:
     for i in range(1, n):
+        prev_col = list(curr_col)
+        curr_col = [0] * n
+
         for j in range(0, n):
-            dp[j][i] = dp[j][i-1]
+            # Try going right:
+            curr_col[j] = prev_col[j]
 
             # Try going down:
             dist_cost = 0
             for k in range(j+1, n):
                 dist_cost += matrix[k-1][i-1]
-                dp[j][i] = min(dp[j][i], dp[k][i-1] + dist_cost)
+                curr_col[j] = min(curr_col[j], prev_col[k] + dist_cost)
 
             # Try going up:
             dist_cost = 0
             for k in range(j-1, -1, -1):
                 dist_cost += matrix[k+1][i-1]
-                dp[j][i] = min(dp[j][i], dp[k][i-1] + dist_cost)
+                curr_col[j] = min(curr_col[j], prev_col[k] + dist_cost)
 
             # Add curr cost
-            dp[j][i] += matrix[j][i]
+            curr_col[j] += matrix[j][i]
 
     # Find which node in last column of matrix has cheapest path cost
-    min_cost = math.inf
-    for i in range(len(dp)):
-        min_cost = min(min_cost, dp[i][-1])
-
+    min_cost = min(curr_col)
     return min_cost
 
 
