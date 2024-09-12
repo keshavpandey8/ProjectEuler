@@ -146,7 +146,6 @@ def int_to_roman(num: int) -> str:
     return result
 
 
-# TODO: optimize dp memory usage
 def ProjectEuler_PathSum_TwoWays_81() -> int:
     try:
         input_file = open(Path("input_files/0081_matrix.txt"), "r")
@@ -158,19 +157,20 @@ def ProjectEuler_PathSum_TwoWays_81() -> int:
 
     # Initialize dynamic programming matrix
     n = len(matrix)
-    dp = [[-1] * n for _ in range(n)]
+    dp = [-1] * n
 
     # Set base cases
-    dp[0][0] = matrix[0][0]
+    dp[0] = matrix[0][0]
     for i in range(1, n):
-        dp[0][i] = matrix[0][i] + dp[0][i-1]
-        dp[i][0] = matrix[i][0] + dp[i-1][0]
+        dp[i] = matrix[0][i] + dp[i-1]
 
+    # Iterate through input matrix row by row to find min path to each node
     for i in range(1, n):
+        dp[0] += matrix[i][0]
         for j in range(1, n):
-            dp[i][j] = min(dp[i-1][j], dp[i][j-1]) + matrix[i][j]
+            dp[j] = min(dp[j], dp[j-1]) + matrix[i][j]
 
-    return dp[n-1][n-1]
+    return dp[n-1]
 
 
 # TODO: optimize dp memory usage
