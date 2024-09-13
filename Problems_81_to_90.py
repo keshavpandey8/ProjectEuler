@@ -22,32 +22,13 @@ def roll_dice(num_rolls: int, max_dice_val: int) -> int:
     return (result, double)
 
 
-# TODO: get better name
 # Get number of ways we can sum to 'n' using only two integers 'x' and 'y'
-# Such that: 1 <= x <= y <= max_addend
-def get_num_combinations(n: int, max_addend: int) -> int:
-    curr_addend = min(max_addend, n-1)
-    result = 0
-
-    while ((n-curr_addend) <= curr_addend):
-        curr_addend -= 1
-        result += 1
-
-    return result
-
-    # for i in range(1, n+1):
-    #     memo[i] = memo[i-1]
-    #     if (i-curr_addend) >= curr_addend:
-    #         memo[i] += 1
-    #         max_addend += 1
-
-    # # for i in range(1, max_n+1):
-    # #     memo[i] = memo[i-1]
-    # #     if (i-max_addend) >= max_addend:
-    # #         memo[i] += 1
-    # #         max_addend += 1
-
-    # return memo
+# Such that: 1 <= x <= y <= min(n-1, max_addend)
+def get_num_unique_sums(n: int, max_addend: int) -> int:
+    if (max_addend < (n-1)):
+        return (((2 * max_addend) - n) // 2) + 1
+    else:
+        return (n // 2)
 
 
 def get_prime_factors_list(val: int, prime_list: list, memo: list) -> list:
@@ -264,6 +245,7 @@ def ProjectEuler_PathSum_FourWays_83() -> int:
     return shortest_paths[n-1][n-1]
 
 
+# TODO: optimize by implementing Markov Chain solution
 def ProjectEuler_MonopolyOdds_84() -> int:
     board = ["GO", "A1", "CC1", "A2", "T1", "R1", "B1", "CH1",
              "B2", "B3", "JAIL", "C1", "U1", "C2", "C3", "R2",
@@ -420,7 +402,7 @@ def ProjectEuler_CuboidRoute_86() -> int:
             # If current base/height combination is valid solution, account for all prism
             # side lengths (a,b,c) such that (a=base, b+c=height)
             if (min_path == int(min_path)):
-                valid_routes += get_num_combinations(height, base)
+                valid_routes += get_num_unique_sums(height, base)
 
     return base
 
