@@ -25,10 +25,15 @@ def roll_dice(num_rolls: int, max_dice_val: int) -> int:
 # Get number of ways we can sum to 'n' using only two integers 'x' and 'y'
 # Such that: 1 <= x <= y <= min(n-1, max_addend)
 def get_num_unique_sums(n: int, max_addend: int) -> int:
-    if (max_addend < (n-1)):
-        return (((2 * max_addend) - n) // 2) + 1
-    else:
+    if (max_addend >= (n-1)):
         return (n // 2)
+
+    result = (2 - n + (max_addend << 1)) // 2
+
+    if (result <= 0):
+        return 0
+    else:
+        return result
 
 
 def get_prime_factors_list(val: int, prime_list: list, memo: list) -> list:
@@ -378,33 +383,60 @@ def ProjectEuler_CountingRectangles_85() -> int:
     return best_area
 
 
-# TODO: optimize using Pythagorean triangle DP method
 def ProjectEuler_CuboidRoute_86() -> int:
+    # Initialize constants
     M_max = 2000
-    n = 1000000
-    valid_routes = 0
+    target = 1000000
+    m_limit = 1100
 
-    # Pre-calculate and store all needed squares to avoid re-calculating each time
+    # Initialize list containing the number of valid cuboid routes
+    # cuboid_routes[i] = num valid routes for cuboids with longest side length equal to i
+    cuboid_routes = [0] * (M_max + 1)
+    total_cuboid_routes = 0
+
+    # Pre-calculate and store all needed squares to avoid recalculations
     sqrs_len = (M_max*2) + 1
-    sqrs = [None] * sqrs_len
+    sqrs = [0] * sqrs_len
     for i in range(1, sqrs_len):
-        sqrs[i] = (int(math.pow(i, 2)))
+        sqrs[i] = int(math.pow(i, 2))
 
-    base = 0
-    while (valid_routes < n):
-        base += 1
+    # Generate all primitive triangles with base or height <= M_max
+    for m in range(1, m_limit):
+        start = (m % 2) + 1
 
-        # Iterate over all possible triangle heights such that base remains longest side length
-        for height in range(2, (2*base)+1):
-            # Min path will always have longest side length as the triangle base
-            min_path = math.sqrt(sqrs[base] + sqrs[height])
+        for n in range(start, m, 2):
+            if (math.gcd(m, n) != 1):
+                continue
 
-            # If current base/height combination is valid solution, account for all prism
-            # side lengths (a,b,c) such that (a=base, b+c=height)
-            if (min_path == int(min_path)):
-                valid_routes += get_num_unique_sums(height, base)
+            # Calculate base and height of current primitive triangle
+            a = sqrs[m] - sqrs[n]
+            b = 2 * m * n
 
-    return base
+            # Set 'a' as longest side length in cuboid
+            # Increment cuboid_routes by num ways we can have remaining two side lengths sum to 'b'
+            # Repeat for all triangle multiples where a <= M_max. Ex: (3,4,5), (6,8,10), etc.
+            if (a <= M_max):
+                b_val = b
+                for a_val in range(a, M_max+1, a):
+                    cuboid_routes[a_val] += get_num_unique_sums(b_val, a_val)
+                    b_val += b
+
+            # Set 'b' as longest side length in cuboid
+            # Increment cuboid_routes by num ways we can have remaining two side lengths sum to 'a'
+            # Repeat for all triangle multiples where b <= M_max. Ex: (3,4,5), (6,8,10), etc.
+            if (b <= M_max):
+                a_val = a
+                for b_val in range(b, M_max+1, b):
+                    cuboid_routes[b_val] += get_num_unique_sums(a_val, b_val)
+                    a_val += a
+
+    # Sum valid cuboid routes for increasingly larger M until total routes exceeds target
+    for i in range(M_max + 1):
+        total_cuboid_routes += cuboid_routes[i]
+        if (total_cuboid_routes > target):
+            return i
+
+    return -1
 
 
 def ProjectEuler_PrimePowerTriples_87() -> int:
