@@ -45,52 +45,28 @@ def get_prime_factors_list(val: int, prime_list: list, memo: list) -> list:
             prime_factors.append(prime)
             return prime_factors
 
-    return -1
+    return None
 
 
-# Return list of ways to multiply to 'num' with 2 values (f1*f2)
-def getcombo(num: int, pfactors: list, min_r: int, multipliers: int, memo) -> list:
-    curr_pfactors = pfactors[num]
-    num_pfactors = len(curr_pfactors)
+def get_combo(num: int, pfactors: list, multipliers: int, memo) -> list:
     product_combos = list()
+    max_r = (len(pfactors) // multipliers) + 1
 
-    if (multipliers == 2):
-        for r in range(min_r, (num_pfactors//2)+1):
-            multiplicands = list(combinations(curr_pfactors, r))
+    for r in range(1, max_r):
+        multiplicand_combos = list(combinations(pfactors, r))
 
-            for multiplicand in multiplicands:
-                f1 = 1
-                for factor in multiplicand:
-                    f1 *= factor
-                product_combos.append([f1, num//f1])
-    # elif (multipliers == 3):
-    else:
-        # for r in range(min_r, (num_pfactors//3)+1):
-        for r in range(min_r, (num_pfactors//multipliers)+1):
-            multiplicands1 = list(combinations(curr_pfactors, r))
+        for mult1_combo in multiplicand_combos:
+            mult1 = 1
+            for factor in mult1_combo:
+                mult1 *= factor
 
-            for mult1_combo in multiplicands1:
-                mult1 = 1
-                for mult1_factor in mult1_combo:
-                    mult1 *= mult1_factor
-
+            if (multipliers == 2):
+                product_combos.append([mult1, num//mult1])
+            else:
                 new_num = num // mult1
-
                 multiplicands2 = list(memo[new_num][multipliers-1])
-
-                # if (memo.get((new_num, r, multipliers-1), None) != None):
-                #     multiplicands2 = memo.get((new_num, r, multipliers-1))
-                # else:
-                #     multiplicands2 = getcombo(new_num, pfactors, r, multipliers-1, memo)
-                #     memo[(new_num, r, multipliers-1)] = multiplicands2
-
-                # multiplicands2 = getcombo(new_num, pfactors, r, multipliers-1, memo)
-
                 for combo in multiplicands2:
                     product_combos.append([mult1]+[combo])
-    # else:
-    #     print(f"error, too many groups: num={num}, groups={multipliers}, p_factors={curr_pfactors}")
-    #     import sys; sys.exit();
 
     return product_combos
 
@@ -486,7 +462,7 @@ def ProjectEuler_PrimePowerTriples_87() -> int:
 
 def ProjectEuler_ProductSum_Numbers_88() -> int:
     try:
-        input_file = open(Path("precomputed_primes/primes_100_thousand.txt"), "r")
+        input_file = open(Path("precomputed_primes/primes_10_thousand.txt"), "r")
         primes_list = json.load(input_file)
         input_file.close()
     except FileNotFoundError:
@@ -498,115 +474,64 @@ def ProjectEuler_ProductSum_Numbers_88() -> int:
     primes_set = set(primes_list)
     pfactors_list = [None] * prodsum_max
 
+    # Get list of prime factors for all possible product-sums
     for num in range(2, prodsum_max):
-        if (num in primes_set):
-            continue
+        if (num not in primes_set):
+            pfactors_list[num] = get_prime_factors_list(num, primes_list, pfactors_list)
 
-        num_pfactors = get_prime_factors_list(num, primes_list, pfactors_list)
-        pfactors_list[num] = num_pfactors
+    # Cannot have a number with more than 13 prime factors that is also <= k_max
+    # Proof: smallest prime factor is 2, and 2^14 = 16384 > k_max
+    max_pfactors = 13
+    memo_grid = [[None] * (max_pfactors+1) for _ in range(prodsum_max)]
 
-    # print(pfactors_list)
-    # print(pfactors_list[soln_max-1], soln_max-1)
-    # print(pfactors_list[283], 283)
-
-    max_pfactors = 14
-    memo_grid = [[None] * max_pfactors for _ in range(prodsum_max)]
-
+    # Find all product combinations for 'num' and memoize the sum of these combinations
     for num in range(2, prodsum_max):
         curr_pfactors = pfactors_list[num]
         if (curr_pfactors == None):
-            # print(num)
             continue
 
         max_vars = len(curr_pfactors)
 
+        # Get all product combinations using 'num_vars' multipliers
+        # Ex: num_vars=2 -> find all x1*x2=num, num_vars=3 -> find all x1*x2*x3=num, etc.
         for num_vars in range(2, max_vars+1):
-            curr_combos = getcombo(num, pfactors_list, 1, num_vars, memo_grid)
+            curr_combos = get_combo(num, curr_pfactors, num_vars, memo_grid)
             memo_grid[num][num_vars] = set()
 
             for combo in curr_combos:
-                curr_sum = sum(combo)
+                curr_sum = combo[0] + combo[1]
                 memo_grid[num][num_vars].add(curr_sum)
-            # print(f"num={num}, num_vars={num_vars}, curr_combos={curr_combos}, curr_sums={memo_grid[num][num_vars]}")
-
-    # print(f"******************************************")
-    # for i in range(len(memo_grid)):
-    #     print(f"i={i} ; memo[i]={memo_grid[i]}")
-
 
     k_max = 12000
     prod_sums = set()
     total_min_prod_sum = 0
 
+    # Find minimum product-sum for all k <= k_max
     for k in range(2, k_max+1):
-        # print(f"****k = {k}")
         searching = True
-        num_ones = k-2
-        num_vars = 2
         i = k+1
 
-        while (i < prodsum_max) and (searching):
-            # Solution cannot be prime number (probs), skip it
+        while (searching) and (i < prodsum_max):
+            # Solution cannot be prime number (not have enough pfactors), skip it
             if (pfactors_list[i] == None):
-                # print(f"skip prime: {i}")
                 i += 1
                 continue
 
-            # Solution does not have enough pfactors, skip it
-            curr_pfactors = pfactors_list[i]
-            if (num_vars > len(curr_pfactors)):
-                # print(f"skip too few pfactors: {i}")
-                i += 1
-                continue
+            num_pfactors = len(pfactors_list[i])
 
-            # print(f"k={k},i={i},p_factors={curr_pfactors}")
+            # Start by testing product-sums from only 2 multipliers, increment if no soln found
+            for num_vars in range(2, num_pfactors+1):
+                target = i - k + num_vars
 
-            # # Start by testing with only 2 pfactors, and increment gradually if no soln found
-            while (num_vars <= len(curr_pfactors)) and (searching):
-                target = i-num_ones
                 if (target in memo_grid[i][num_vars]):
-                    # print(f"yayyy for k={k}, min prod-sum = {i}, {num_vars}")
-                    searching = False
+                    # print(f"k={k}, min prod-sum = {i}, {num_vars}")
                     if (i not in prod_sums):
                         total_min_prod_sum += i
                         prod_sums.add(i)
-                else:
-                    num_vars += 1
-                    num_ones -= 1
+                    searching = False
+                    break
 
-            num_ones = k-2
-            num_vars = 2
             i += 1
-
-
-            # # Start by testing with only 2 pfactors, and increment gradually if no soln found
-            # while (num_vars <= len(curr_pfactors)) and (searching):
-            #     if (memo.get((i, 1, num_vars), None) != None):
-            #         test_combos = memo.get((i, 1, num_vars))
-            #     else:
-            #         test_combos = getcombo(i, pfactors_list, 1, num_vars, memo)
-            #         memo[(i, 1, num_vars)] = test_combos
-
-            #     for combo in test_combos:
-            #         curr_sum = num_ones
-            #         for curr_val in combo:
-            #             curr_sum += curr_val
-
-            #         if (curr_sum == i):
-            #             print(f"yayyy for k={k}, min prod-sum = {i}, {combo}")
-            #             searching = False
-            #             if (i not in prod_sums):
-            #                 total_min_prod_sum += i
-            #                 prod_sums.add(i)
-            #             break
-
-            #     num_vars += 1
-            #     num_ones -= 1
-
-            # num_ones = k-2
-            # num_vars = 2
-            # i += 1
-
 
     return total_min_prod_sum
 
