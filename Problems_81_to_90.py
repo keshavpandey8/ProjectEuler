@@ -48,27 +48,26 @@ def get_prime_factors_list(val: int, prime_list: list, memo: list) -> list:
     return None
 
 
-def get_combo(num: int, pfactors: list, multipliers: int, memo) -> list:
-    product_combos = list()
-    max_r = (len(pfactors) // multipliers) + 1
+def get_combo(num: int, pfactors: list, max_multipliers: int, memo: list) -> None:
+    for num_multipliers in range(2, max_multipliers):
+        memo[num][num_multipliers] = set()
+        max_r = (len(pfactors) // num_multipliers) + 1
 
-    for r in range(1, max_r):
-        multiplicand_combos = list(combinations(pfactors, r))
+        for r in range(1, max_r):
+            multiplicand_combos = list(combinations(pfactors, r))
 
-        for mult1_combo in multiplicand_combos:
-            mult1 = 1
-            for factor in mult1_combo:
-                mult1 *= factor
-
-            if (multipliers == 2):
-                product_combos.append([mult1, num//mult1])
-            else:
+            for mult1_combo in multiplicand_combos:
+                mult1 = 1
+                for factor in mult1_combo:
+                    mult1 *= factor
                 new_num = num // mult1
-                multiplicands2 = list(memo[new_num][multipliers-1])
-                for combo in multiplicands2:
-                    product_combos.append([mult1]+[combo])
 
-    return product_combos
+                if (num_multipliers == 2):
+                    memo[num][num_multipliers].add(mult1 + new_num)
+                else:
+                    multiplicands2 = memo[new_num][num_multipliers-1]
+                    for combo in multiplicands2:
+                        memo[num][num_multipliers].add(mult1+combo)
 
 
 def roman_to_int(map: dict, numeral: str) -> int:
@@ -486,21 +485,13 @@ def ProjectEuler_ProductSum_Numbers_88() -> int:
 
     # Find all product combinations for 'num' and memoize the sum of these combinations
     for num in range(2, prodsum_max):
-        curr_pfactors = pfactors_list[num]
-        if (curr_pfactors == None):
+        if (pfactors_list[num] == None):
             continue
 
-        max_vars = len(curr_pfactors)
-
-        # Get all product combinations using 'num_vars' multipliers
-        # Ex: num_vars=2 -> find all x1*x2=num, num_vars=3 -> find all x1*x2*x3=num, etc.
-        for num_vars in range(2, max_vars+1):
-            curr_combos = get_combo(num, curr_pfactors, num_vars, memo_grid)
-            memo_grid[num][num_vars] = set()
-
-            for combo in curr_combos:
-                curr_sum = combo[0] + combo[1]
-                memo_grid[num][num_vars].add(curr_sum)
+        # Get all product combinations using [2, max_vars] multipliers
+        # Ex: vars=2 -> find all x1*x2=num, vars=3 -> find all x1*x2*x3=num, etc.
+        max_vars = len(pfactors_list[num])
+        get_combo(num, pfactors_list[num], max_vars+1, memo_grid)
 
     k_max = 12000
     prod_sums = set()
