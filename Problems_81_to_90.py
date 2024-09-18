@@ -48,26 +48,56 @@ def get_prime_factors_list(val: int, prime_list: list, memo: list) -> list:
     return None
 
 
-def get_combo(num: int, pfactors: list, max_multipliers: int, memo: list) -> None:
-    for num_multipliers in range(2, max_multipliers):
-        memo[num][num_multipliers] = set()
-        max_r = (len(pfactors) // num_multipliers) + 1
+def get_product_sums(num: int, pfactors: list, num_pfactors: int, memo: list, best_k: list) -> None:
+    # Given 5 pfactors, want all combos of (1,4) and (2,3). Testing (3,2) leads to duplicate checks
+    max_r = (num_pfactors // 2) + 1
 
-        for r in range(1, max_r):
-            multiplicand_combos = list(combinations(pfactors, r))
+    for r in range(1, max_r):
+        # Get all ways of choosing 'r' pfactors
+        multiplicand_combos = combinations(pfactors, r)
 
-            for mult1_combo in multiplicand_combos:
-                mult1 = 1
-                for factor in mult1_combo:
-                    mult1 *= factor
-                new_num = num // mult1
+        # Calculate all factors of 'num' that can be made using 'r' prime factors
+        for mult_factors in multiplicand_combos:
+            multiplicand = 1
+            for factor in mult_factors:
+                multiplicand *= factor
+            multiplier = num // multiplicand
 
+            # Determine max number of multipliers to check based on current 'r' value so as to
+            # avoid checking duplicates. Ex: num_pfactors=9, r=3 -> check x1*x2, x1*x2*x3
+            max_multipliers = (num_pfactors // r) + 1
+
+            for num_multipliers in range(2, max_multipliers):
                 if (num_multipliers == 2):
-                    memo[num][num_multipliers].add(mult1 + new_num)
+                    # Current product is just multiplicand and multiplier
+                    curr_sum = multiplicand + multiplier
+
+                    # If this is a new product-sum for num, then memoize it
+                    if (curr_sum not in memo[num][num_multipliers]):
+                        memo[num][num_multipliers].add(curr_sum)
+
+                        # Number of values needed to sum to 'num' will be the number of multipliers
+                        # used to get to 'curr_sum', then the 'num_ones' needed to fill gap from
+                        # 'curr_sum' to 'num'
+                        k_idx = num_multipliers + num - curr_sum
+                        if (k_idx <= 12000) and (num < best_k[k_idx]):
+                            best_k[k_idx] = num
                 else:
-                    multiplicands2 = memo[new_num][num_multipliers-1]
-                    for combo in multiplicands2:
-                        memo[num][num_multipliers].add(mult1+combo)
+                    # Current product is 'multiplicant' and 'multiplier'
+                    # Where 'multiplier' is made up of (num_multipliers-1) factors
+                    multiplier_sums = memo[multiplier][num_multipliers-1]
+
+                    # For each way the factors of multiplier can be summed:
+                    for multiplier_sum in multiplier_sums:
+                        # Calculate new product-sum. If unique, then memoize it
+                        curr_sum = multiplicand + multiplier_sum
+                        if (curr_sum not in memo[num][num_multipliers]):
+                            memo[num][num_multipliers].add(curr_sum)
+
+                            # Determine length of k_set and update list of minimal prod-sums
+                            k_idx = num_multipliers + num - curr_sum
+                            if (k_idx <= 12000) and (num < best_k[k_idx]):
+                                best_k[k_idx] = num
 
 
 def roman_to_int(map: dict, numeral: str) -> int:
@@ -468,6 +498,12 @@ def ProjectEuler_ProductSum_Numbers_88() -> int:
         print(f"Error: could not find list of prime numbers")
         return -1
 
+    # Store minimal product-sums for all k <= k_max in 'k_min_prod_sums'
+    # Largest minimal product-sum for any given k is equal to 2*k
+    k_max = 12000
+    k_min_prod_sums = [(2*k) for k in range(k_max+1)]
+    k_min_prod_sums[1] = 0
+
     # Assume all min product-sums for k <= k_max are < prodsum_max
     prodsum_max = 12500
     primes_set = set(primes_list)
@@ -488,42 +524,18 @@ def ProjectEuler_ProductSum_Numbers_88() -> int:
         if (pfactors_list[num] == None):
             continue
 
-        # Get all product combinations using [2, max_vars] multipliers
+        # Want all product combinations using [2, max_vars] multipliers
         # Ex: vars=2 -> find all x1*x2=num, vars=3 -> find all x1*x2*x3=num, etc.
         max_vars = len(pfactors_list[num])
-        get_combo(num, pfactors_list[num], max_vars+1, memo_grid)
+        for num_multipliers in range(2, max_vars+1):
+            memo_grid[num][num_multipliers] = set()
 
-    k_max = 12000
-    prod_sums = set()
-    total_min_prod_sum = 0
+        # Get all product combinations for 'num', then compare to minimal vals in 'k_min_prod_sums'
+        get_product_sums(num, pfactors_list[num], max_vars, memo_grid, k_min_prod_sums)
 
-    # Find minimum product-sum for all k <= k_max
-    for k in range(2, k_max+1):
-        searching = True
-        i = k+1
-
-        while (searching) and (i < prodsum_max):
-            # Solution cannot be prime number (not have enough pfactors), skip it
-            if (pfactors_list[i] == None):
-                i += 1
-                continue
-
-            num_pfactors = len(pfactors_list[i])
-
-            # Start by testing product-sums from only 2 multipliers, increment if no soln found
-            for num_vars in range(2, num_pfactors+1):
-                target = i - k + num_vars
-
-                if (target in memo_grid[i][num_vars]):
-                    # print(f"k={k}, min prod-sum = {i}, {num_vars}")
-                    if (i not in prod_sums):
-                        total_min_prod_sum += i
-                        prod_sums.add(i)
-                    searching = False
-                    break
-
-            i += 1
-
+    # Convert list of minimal product-sums to set to eliminate duplicate values
+    # Then sum all values to find final result
+    total_min_prod_sum = sum(set(k_min_prod_sums))
     return total_min_prod_sum
 
 
