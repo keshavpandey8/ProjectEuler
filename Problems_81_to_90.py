@@ -561,50 +561,46 @@ def ProjectEuler_RomanNumerals_89() -> int:
 
 
 def ProjectEuler_CubeDigitPairs_90() -> int:
+    # Get list of all combinations of digits that can appear on a cube
     combos = combinations([0,1,2,3,4,5,6,7,8,9], 6)
     valid_cube_combos = list()
 
+    # Prune invalid combinations based on digit pair criteria
     for combo in combos:
-        if (2 in combo) or (5 in combo):
+        if ((2 in combo) or (5 in combo)) and ((8 in combo) or (1 in combo)):
             bit_combo = 0
             for val in combo:
                 bit_combo |= (1 << val)
             valid_cube_combos.append(bit_combo)
 
-    # Constants:
-    zero_mask   = 0b1
-    one_mask    = 0b10
-    two_mask    = 0b100
-    three_mask  = 0b1000
-    four_mask   = 0b10000
-    five_mask   = 0b100000
-    six_mask    = 0b1000000
-    eight_mask  = 0b100000000
-    nine_mask   = 0b1000000000
-
-    # Initialize variables for finding solution
+    # Initialize constants:
+    mask = [(1 << i) for i in range(10)]
     n = len(valid_cube_combos)
-    counter = 0
 
+    # Track number of distinct cube pairs that form all desired square values
+    valid_cube_pairs = 0
+
+    # Iterate over all combinations for the first cube
     for i in range(n):
         cube1 = valid_cube_combos[i]
-        cube1_zero = (cube1 & zero_mask) == zero_mask
+        cube1_zero = (cube1 & mask[0]) == mask[0]
 
         if (not cube1_zero):
             break
 
+        # Iterate over all combinations for the second cube
         for j in range(i, n):
             cube2 = valid_cube_combos[j]
-            cube2_zero = (cube2 & zero_mask) == zero_mask
+            cube2_zero = (cube2 & mask[0]) == mask[0]
 
             # Check '01', '04', and '09' case
-            cube1_one = (cube1 & one_mask) == one_mask
-            cube1_four = (cube1 & four_mask) == four_mask
-            cube1_sixnine = ((cube1 & six_mask) == six_mask) or ((cube1 & nine_mask) == nine_mask)
+            cube1_one = (cube1 & mask[1]) == mask[1]
+            cube1_four = (cube1 & mask[4]) == mask[4]
+            cube1_sixnine = ((cube1 & mask[6]) == mask[6]) or ((cube1 & mask[9]) == mask[9])
 
-            cube2_one = (cube2 & one_mask) == one_mask
-            cube2_four = (cube2 & four_mask) == four_mask
-            cube2_sixnine = ((cube2 & six_mask) == six_mask) or ((cube2 & nine_mask) == nine_mask)
+            cube2_one = (cube2 & mask[1]) == mask[1]
+            cube2_four = (cube2 & mask[4]) == mask[4]
+            cube2_sixnine = ((cube2 & mask[6]) == mask[6]) or ((cube2 & mask[9]) == mask[9])
 
             # Both cubes have a '0'
             if (cube2_zero):
@@ -619,23 +615,23 @@ def ProjectEuler_CubeDigitPairs_90() -> int:
                 if not (cube2_one and cube2_four and cube2_sixnine):
                     continue
 
-            # Check '25' case
-            cube1_two = (cube1 & two_mask) == two_mask
-            cube1_five = (cube1 & five_mask) == five_mask
-
-            cube2_two = (cube2 & two_mask) == two_mask
-            cube2_five = (cube2 & five_mask) == five_mask
-
-            if not ((cube1_two and cube2_five) or (cube2_two and cube1_five)):
-                continue
-
             # Check '16' case
             if not ((cube1_one and cube2_sixnine) or (cube2_one and cube1_sixnine)):
                 continue
 
+            # Check '25' case
+            cube1_two = (cube1 & mask[2]) == mask[2]
+            cube1_five = (cube1 & mask[5]) == mask[5]
+
+            cube2_two = (cube2 & mask[2]) == mask[2]
+            cube2_five = (cube2 & mask[5]) == mask[5]
+
+            if not ((cube1_two and cube2_five) or (cube2_two and cube1_five)):
+                continue
+
             # Check '36' case
-            cube1_three = (cube1 & three_mask) == three_mask
-            cube2_three = (cube2 & three_mask) == three_mask
+            cube1_three = (cube1 & mask[3]) == mask[3]
+            cube2_three = (cube2 & mask[3]) == mask[3]
 
             if not ((cube1_three and cube2_sixnine) or (cube2_three and cube1_sixnine)):
                 continue
@@ -645,17 +641,15 @@ def ProjectEuler_CubeDigitPairs_90() -> int:
                 continue
 
             # Check '81' case
-            cube1_eight = (cube1 & eight_mask) == eight_mask
-            cube2_eight = (cube2 & eight_mask) == eight_mask
+            cube1_eight = (cube1 & mask[8]) == mask[8]
+            cube2_eight = (cube2 & mask[8]) == mask[8]
 
             if not ((cube1_eight and cube2_one) or (cube2_eight and cube1_one)):
                 continue
 
-            counter += 1
+            valid_cube_pairs += 1
 
-    # print(n, counter)
-    # print(valid_cube_combos)
-    return counter
+    return valid_cube_pairs
 
 
 def main():
