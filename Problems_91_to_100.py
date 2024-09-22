@@ -10,7 +10,8 @@ def get_sum_of_square_digits(val: int) -> int:
     result = 0
 
     while (val):
-        result += (val % 10) ** 2
+        digit = val % 10
+        result += digit * digit
         val //= 10
 
     return result
@@ -297,76 +298,44 @@ def ProjectEuler_ArithmeticExpressions_93() -> int:
     return result
 
 
+# TODO: can optimize further by solving directly without any searching
 def ProjectEuler_AlmostEquilateralTriangles_94() -> int:
-    # Initialize constants
-    max_L = 1000000000  # 101 317 295
-    max_perimeter1_m_val = math.ceil(math.sqrt(max_L / 4))
-
-    # Sub n=1 and solve: (m^2 + 2m - 499999999 = 0)
-    # Find: m = 22359.7, -22361.7
-    m_limit = 22360
+    # Find all "almost equilateral" triangles with perimeter <= max_p
+    max_p = 1000000000
+    max_c = math.floor(max_p / 3)
     result = 0
 
-    # Generate all primitive triangles with perimeters <= max_L
-    for m in range(1, m_limit):
-        start = (m % 2) + 1
+    # Store tree of primitive Pythagorean triples in list
+    triangle_stack = list()
+    triangle_stack.append((3,4,5))
 
-        for n in range(start, m, 2):
-            if (math.gcd(m, n) != 1):
-                continue
+    # Complete a DFS search of all nodes in tree
+    while (len(triangle_stack) > 0):
+        a, b, c = triangle_stack.pop()
 
-            # m_2 = int(math.pow(m, 2))
-            # n_2 = int(math.pow(n, 2))
-            m_2 = m ** 2
-            n_2 = n ** 2
+        # The "almost equilateral" will be formed with hypotenuse and minimum side length
+        if (a < b):
+            # Test triangle with 2 c's and 1 double length a
+            diff = c - (2*a)
+            if (diff == 1) or (diff == -1):
+                perimeter = c + c + (2*a)
+                result += perimeter
+        else:
+            # Test triangle with 2 c's and 1 double length b
+            diff = c - (2*b)
+            if (diff == 1) or (diff == -1):
+                perimeter = c + c + (2*b)
+                result += perimeter
 
-            a = m_2 - n_2
-            b = 2 * m * n
-            c = m_2 + n_2
+        # Generate next primitive triangles with perimeters <= max_p
+        t1 = ((a)-(2*b)+(2*c), (2*a)-(b)+(2*c), (2*a)-(2*b)+(3*c))
+        t3 = ((-a)+(2*b)+(2*c), (-2*a)+(b)+(2*c), (-2*a)+(2*b)+(3*c))
 
-            valid_p1 = True if (m <= max_perimeter1_m_val) else False
+        if ((t1[0] + t1[1] + t1[2]) <= max_p) and (t1[2] <= max_c):
+            triangle_stack.append(t1)
 
-            # Consider equilateral triangle with 2 c's and 1 double length a
-            # if (m <= max_perimeter1_m_val):
-            if (valid_p1):
-                perimeter1 = 4 * m_2
-                init_diff = abs(c - 2*a)
-
-                if (init_diff == 1) and (perimeter1 <= max_L):
-                    # print(f"{c,c,a} ; {perimeter1}")
-                    result += perimeter1
-                    # k = 1 / init_diff
-                    # if (int(k) == k):
-                    #     print(f"{c,c,a} ; {k}")
-                    #     num_p_triangles += 1
-
-            # Consider equilateral triangle with 2 c's and 1 double length b
-            perimeter2 = 2 * (c + b)
-            if (not valid_p1) and (perimeter2 > max_L): break
-            init_diff = abs(c - 2*b)
-
-            if (init_diff == 1) and (perimeter2 <= max_L):
-                # print(f"{c,c,b} ; {perimeter2}")
-                result += perimeter2
-                # k = 1 / init_diff
-                # if (int(k) == k):
-                #     print(f"{c,c,b} ; {k}")
-                #     num_p_triangles += 1
-
-
-            # if (m <= max_p2_m_val):
-            # if (p1 > max_L):
-            #     break
-
-            # print(f"{a,b,c} ; {p1}")
-
-            # if (p1 < max_L):
-            #     print(f"{a,b,c} ; {k} ; {p1}")
-            #     num_p_triangles += 1
-
-            # if (p2 < max_L):
-            #     print(f"{a,b,c} ; {k} ; {p2}")
-            #     num_p_triangles += 1
+        if ((t3[0] + t3[1] + t3[2]) <= max_p) and (t3[2] <= max_c):
+            triangle_stack.append(t3)
 
     return result
 
