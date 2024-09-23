@@ -1,11 +1,12 @@
 # Keshav Pandey
 from collections import defaultdict
 import decimal
-from itertools import combinations, permutations, product
+from itertools import combinations, combinations_with_replacement, permutations, product
 import json
 import math
 from pathlib import Path
 
+# Get sum of all digits in 'val' squared. Ex: 145 = 1^2 + 4^2 + 5^2 = 42
 def get_sum_of_square_digits(val: int) -> int:
     result = 0
 
@@ -15,6 +16,45 @@ def get_sum_of_square_digits(val: int) -> int:
         val //= 10
 
     return result
+
+
+# Concatenate list of digits into an integer. Ex: [1,3,4] = 134
+def concat_digits(digits: list) -> int:
+    result = 0
+    for digit in digits:
+        result = (result * 10) + digit
+    return result
+
+
+def sqr_digit_chains(combos: list, r: int, memo: list, factorials: list) -> int:
+    num_89_chains = 0
+
+    # Iterate over all r-length combinations of digits
+    for combo in combos:
+        # Convert list of digits into an integer value
+        curr_val = concat_digits(combo)
+
+        # If chain for curr_val arrives at '89', calculate num permutations of curr digit 'combo'
+        if memo[get_sum_of_square_digits(curr_val)]:
+            permutations = factorials[r]
+
+            # Account for repeated digits
+            digit_count = [0] * 10
+            for digit in combo:
+                digit_count[digit] += 1
+
+            for count in digit_count:
+                if (count > 1):
+                    permutations //= factorials[count]
+
+            # Account for invalid permutations with a leading '0'
+            if (digit_count[0] > 0):
+                permutations = (permutations * (r-digit_count[0])) // r
+
+            # Increment result by number of unique permutations
+            num_89_chains += permutations
+
+    return num_89_chains
 
 
 def get_sudoku_info(board: list[list[str]], n: int) -> tuple[dict, dict, dict]:
@@ -201,11 +241,12 @@ def ProjectEuler_IntegerCoordinateRightTriangles_91() -> int:
     return num_triangles
 
 
-# TODO: can be optimized
 def ProjectEuler_SquareDigitChains_92() -> int:
+    # Initialize variables to define problem
     n = 10000000
     num_89ers = 0
 
+    # Store result for all square digit sums given (num < n) in memoization table:
     memo_size = get_sum_of_square_digits(n-1)
     memo = [False] * (memo_size+1)
 
@@ -217,9 +258,23 @@ def ProjectEuler_SquareDigitChains_92() -> int:
         if (curr_val == 89):
             memo[i] = True
 
-    for i in range(1, n):
-        if memo[get_sum_of_square_digits(i)]:
-            num_89ers += 1
+    # Note: sum_of_square_digits(974322) = sum_of_square_digits(223479) = 163
+    # This is because the result depends on the digits in each num, and not the order of the digits
+    # So rather than checking all num < n, we check all combinations of digits <= max_digits
+    digits = [9,8,7,6,5,4,3,2,1,0]
+    max_digits = 7
+
+    # Pre-calculate factorial value for necessary digits
+    factorials = [1] * (max_digits+1)
+    for i in range(2, max_digits+1):
+        factorials[i] = i * factorials[i-1]
+
+    # Iterate over all combinations of numbers with only 1 digit up to 7 digits
+    # (We pop last combination as '0' is invalid combination with respect to problem description)
+    for i in range(1, max_digits+1):
+        curr_combos = list(combinations_with_replacement(digits, i))
+        curr_combos.pop()
+        num_89ers += sqr_digit_chains(curr_combos, i, memo, factorials)
 
     return num_89ers
 
