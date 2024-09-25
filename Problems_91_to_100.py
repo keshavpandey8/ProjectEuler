@@ -1,6 +1,5 @@
 # Keshav Pandey
 from collections import defaultdict
-import decimal
 from itertools import combinations, combinations_with_replacement, permutations, product
 import json
 import math
@@ -57,81 +56,89 @@ def sqr_digit_chains(combos: list, r: int, memo: list, factorials: list) -> int:
     return num_89_chains
 
 
-def get_sudoku_info(board: list[list[str]], n: int) -> tuple[dict, dict, dict]:
-    rows = defaultdict(set)
-    cols = defaultdict(set)
-    boxes = defaultdict(set)
+def get_sudoku_info(board: list[list[int]], n: int) -> tuple[list, list, list]:
+    rows = [[False] * (n+1) for _ in range(n)]
+    cols = [[False] * (n+1) for _ in range(n)]
+    boxes = [[False] * (n+1) for _ in range(n)]
 
     # Read in Sudoku puzzle information
     for i in range(n):
         for j in range(n):
             val = board[i][j]
 
-            if (val != "0"):
-                rows[i].add(val)
-                cols[j].add(val)
+            if (val != 0):
+                rows[i][val] = True
+                cols[j][val] = True
 
-                box_idx = (i-(i%3)) + (j // 3)
-                boxes[box_idx].add(val)
+                box_idx = (i - (i % 3)) + (j // 3)
+                boxes[box_idx][val] = True
 
     return (rows, cols, boxes)
 
 
-def sudoku_search(board: list[list[str]], n: int, rows: dict, cols: dict, boxes: dict) -> None:
-    for i in range(n):
-        for j in range(n):
-            if board[i][j] != "0":
-                continue
+def sudoku_search(board: list[list[int]], n: int, rows: list, cols: list, boxes: list) -> None:
+    check_sudoku = True
 
-            possible_val = None
-            box = (i - (i % 3)) + (j // 3)
+    # Each time we find at least one number that updates the board, we reset check_sudoku=True
+    # (Because filling in one sqr might mean a previously checked sqr now also has a soln)
+    while (check_sudoku):
+        check_sudoku = False
 
-            for test in range(1, n+1):
-                test = str(test)
-                if (test not in rows[i]) and (test not in cols[j]) and (test not in boxes[box]):
-                    if (possible_val == None):
-                        possible_val = test
-                    else:
-                        break
-            else:
-                board[i][j] = possible_val
-                rows[i].add(possible_val)
-                cols[j].add(possible_val)
-                boxes[box].add(possible_val)
+        # Iterate over all squares in Sudoku puzzle
+        for i in range(n):
+            for j in range(n):
+                if board[i][j] != 0:
+                    continue
+
+                box_idx = (i - (i % 3)) + (j // 3)
+                only_soln = None
+
+                # Check nums 1-9 and see if only one of these values is valid for curr square
+                for num in range(1, n+1):
+                    if not (rows[i][num] or cols[j][num] or boxes[box_idx][num]):
+                        if (only_soln == None):
+                            only_soln = num
+                        else:
+                            break
+                else:
+                    board[i][j] = only_soln
+                    rows[i][only_soln] = True
+                    cols[j][only_soln] = True
+                    boxes[box_idx][only_soln] = True
+                    check_sudoku = True
 
 
-def sudoku_solver(board: list[list[str]], n: int, rows: dict, cols: dict, boxes: dict, idx: int) -> bool:
+def sudoku_solver(board: list[list[int]], n: int, rows: list, cols: list, boxes: list, idx: int) -> bool:
     # Find next empty cell that needs to be filled in
     # If no more empty cells, found valid solution and can exit recursion
     if (idx == 81):
         return True
 
-    next_i = idx // n
-    next_j = idx % n
+    i = idx // n
+    j = idx % n
 
-    if (board[next_i][next_j] != "0"):
+    # If current cell is already filled in, skip to next cell in puzzle
+    if (board[i][j] != 0):
         return sudoku_solver(board, n, rows, cols, boxes, idx+1)
 
     # Calculate which box current empty cell is in
-    box_idx = (next_i-(next_i%3)) + (next_j // 3)
+    box_idx = (i - (i % 3)) + (j // 3)
 
     # Try all possible values for current empty cell
-    for test in range(1, n+1):
-        test = str(test)
-
-        if (test not in rows[next_i]) and (test not in cols[next_j]) and (test not in boxes[box_idx]):
-            board[next_i][next_j] = test
-            rows[next_i].add(test)
-            cols[next_j].add(test)
-            boxes[box_idx].add(test)
+    for num in range(1, n+1):
+        if not (rows[i][num] or cols[j][num] or boxes[box_idx][num]):
+            board[i][j] = num
+            rows[i][num] = True
+            cols[j][num] = True
+            boxes[box_idx][num] = True
 
             if (sudoku_solver(board, n, rows, cols, boxes, idx+1)):
                 return True
 
-            board[next_i][next_j] = "0"
-            rows[next_i].remove(test)
-            cols[next_j].remove(test)
-            boxes[box_idx].remove(test)
+            board[i][j] = 0
+            rows[i][num] = False
+            cols[j][num] = False
+            boxes[box_idx][num] = False
 
     return False
 
@@ -446,6 +453,7 @@ def ProjectEuler_AmicableChains_95() -> int:
     return result
 
 
+# TODO: can optimize further by adding more logic checking
 def ProjectEuler_SuDoku_96() -> int:
     try:
         input_file = open(Path("input_files/0096_sudoku.txt"), "r")
@@ -469,7 +477,7 @@ def ProjectEuler_SuDoku_96() -> int:
         sudoku_solver(curr_board, n, rows, cols, boxes, 0)
 
         # Increment resultant sum
-        top_left_num = (int(curr_board[0][0]) * 100) + (int(curr_board[0][1]) * 10) + int(curr_board[0][2])
+        top_left_num = (curr_board[0][0] * 100) + (curr_board[0][1] * 10) + curr_board[0][2]
         result += top_left_num
 
     return result
