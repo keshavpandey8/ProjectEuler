@@ -194,18 +194,6 @@ def check_anagramic_squares(sqrs: list, w1: str, w2: str) -> int:
     return largest_square
 
 
-def quadratic_solver(n: int):
-    discriminant = (2*(n**2)) - (2*n) + 1
-    decimal.getcontext().prec = 40
-    sqrt_d = decimal.Decimal(discriminant).sqrt()
-
-    if (int(sqrt_d) == sqrt_d):
-        # print(f"d={discriminant}, sqrt_d={sqrt_d}")
-        return sqrt_d
-
-    return -1
-
-
 def ProjectEuler_IntegerCoordinateRightTriangles_91() -> int:
     min_coord = 0
     max_coord = 50
@@ -585,66 +573,37 @@ def ProjectEuler_LargestExponential_99() -> int:
 
 
 def ProjectEuler_ArrangedProbability_100() -> int:
-    # Initialize variables
-    curr_b = 15
-    curr_n = 21
+    # Search for first valid disc arrangement with total_discs > n
+    n = 1000000000000
 
+    # Initialize variables to values of first valid arrangement of discs
+    blue_discs = 15
+    total_discs = 21
+
+    # Ratio of blue_discs:total_discs in reduced form = gcd_num:gcd_denom
     gcd_num = 5
     gcd_denom = 7
 
-    max_n = 1000000000000
+    two_fold = True
 
-    # Starting iteration:
-    test_b = curr_b + gcd_num
-    test_n = -1
-    valid_soln = False
-
-    while (test_n < max_n) or (not valid_soln):
-        temp = int(test_b / gcd_num)
-        test_n = (temp * gcd_denom) + 1
-
-        num_b_discs = quadratic_solver(test_n)
-        if (num_b_discs != -1):
-            # B = (num_b_discs+1) / 2
-            # print(f"test_n={test_n}, test_b={test_b}, B={B}")
-
-            curr_b = test_b
-            curr_gcd = math.gcd(test_n, test_b)
-            gcd_num = test_b // curr_gcd
-            gcd_denom = test_n // curr_gcd
-            test_b = curr_b + gcd_num
-            valid_soln = True
+    # While current disc arrangement has too few discs, get next arrangement
+    while (total_discs <= n):
+        # Solve for next valid number of total_discs and blue_discs
+        if (two_fold):
+            total_discs = 2 * (gcd_num + gcd_denom) * gcd_num
+            blue_discs = ((total_discs - 1) * gcd_num) // gcd_denom
+            two_fold = False
         else:
-            test_b += gcd_num
-            valid_soln = False
+            total_discs = (gcd_num + gcd_denom) * gcd_num
+            blue_discs = ((total_discs - 1) * gcd_num) // gcd_denom
+            two_fold = True
 
-    # print(type(min_test_n), type(max_test_n), type(gcd_num))
-    # print(min_test_n, max_test_n, gcd_num)
-    # valid_soln = False
+        # Update ratio variables for next iteration
+        curr_gcd = math.gcd(total_discs, blue_discs)
+        gcd_num = blue_discs // curr_gcd
+        gcd_denom = total_discs // curr_gcd
 
-
-    # for test_n in range(min_test_n, max_test_n, gcd_num):
-    #     num_b_discs = quadratic_solver(test_n)
-    #     if (num_b_discs != -1):
-    #         B = (num_b_discs+1) / 2
-    #         print(f"n={test_n}, B={B}")
-
-    # while ():
-
-
-    # min_n = 21
-    # max_n = 100000
-    # # min_n = int(math.pow(10, 12))
-    # # max_n = int(min_n * 1.5)
-
-    # for n in range(min_n, max_n):
-    #     num_b_discs = quadratic_solver(n)
-    #     if (num_b_discs != -1):
-    #         B = (num_b_discs+1) / 2
-    #         print(f"n={n}, B={B}")
-    #         # return 5
-
-    return curr_b
+    return blue_discs
 
 
 def main():
