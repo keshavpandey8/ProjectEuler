@@ -1,6 +1,6 @@
 # Keshav Pandey
 from collections import defaultdict
-from itertools import combinations, combinations_with_replacement, permutations, product
+from itertools import combinations_with_replacement, permutations, product
 import json
 import math
 from pathlib import Path
@@ -202,36 +202,37 @@ def check_anagramic_squares(sqrs: list, w1: str, w2: str) -> int:
 
 
 def ProjectEuler_IntegerCoordinateRightTriangles_91() -> int:
+    # Initialize variables to define problem
     min_coord = 0
     max_coord = 50
 
-    coords = [i for i in range(min_coord, max_coord+1)]
-    coord_combos = product(coords, repeat=2)
-    triangle_combos = combinations(coord_combos, 2)
+    # Store count of number of triangles possible with right angle at point P
+    num_P_triangles = 0
 
-    num_triangles = 0
-    x0, y0 = 0, 0
+    # Iterate over all combinations of points P, Q where P=(x1,y1) and Q=(x2,y2)
+    # Note: we set loops such that point P is always above and to the left of point Q
+    for x1 in range(min_coord, max_coord+1):
+        for x2 in range(x1, max_coord+1):
+            for y1 in range(min_coord, max_coord+1):
+                for y2 in range(min_coord, y1+1):
+                    if ((x1, y1) == (0, 0)):
+                        break
 
-    # Iterate over all combinations of points P, Q
-    for P, Q in triangle_combos:
-        x1, y1 = P
-        x2, y2 = Q
+                    if ((x1, y1) == (x2, y2)):
+                        continue
 
-        if ((x1, y1) == (x0,y0)):
-            continue
+                    # Calculate vectors of triangle OPQ that go through point P
+                    OP_x, OP_y = x1, y1
+                    PQ_x, PQ_y = x2-x1, y2-y1
 
-        # Calculate vectors for triangle OPQ
-        OP_x, OP_y = x1-x0, y1-y0
-        OQ_x, OQ_y = x2-x0, y2-y0
-        PQ_x, PQ_y = x2-x1, y2-y1
+                    # Calculate dot product to test if point P is a right angle
+                    if ((OP_x*PQ_x) + (OP_y*PQ_y)) == 0:
+                        num_P_triangles += 1
 
-        # Calculate dot product to test if any of the three angles are right angles
-        if ((OP_x*OQ_x) + (OP_y*OQ_y)) == 0:
-            num_triangles += 1
-        elif ((OP_x*PQ_x) + (OP_y*PQ_y)) == 0:
-            num_triangles += 1
-        elif ((OQ_x*PQ_x) + (OQ_y*PQ_y)) == 0:
-            num_triangles += 1
+    # Total triangles with right angle at point O will be (max_coord^2)
+    # Total triangles with right angle at point Q will be equal to total triangles at point P
+    num_O_triangles = int(math.pow(max_coord, 2))
+    num_triangles = num_O_triangles + (2 * num_P_triangles)
 
     return num_triangles
 
