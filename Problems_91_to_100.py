@@ -349,44 +349,40 @@ def ProjectEuler_ArithmeticExpressions_93() -> int:
     return result
 
 
-# TODO: can optimize further by solving directly without any searching
 def ProjectEuler_AlmostEquilateralTriangles_94() -> int:
     # Find all "almost equilateral" triangles with perimeter <= max_p
     max_p = 1000000000
-    max_c = math.floor(max_p / 3)
     result = 0
 
-    # Store tree of primitive Pythagorean triples in list
-    triangle_stack = list()
-    triangle_stack.append((3,4,5))
+    # Store side lengths of first primitive Pythagorean triple, and the perimeter of the
+    # "almost equilateral" triangle that it forms
+    a = 3
+    b = 4
+    c = 5
+    perimeter = 2*(c+a)
 
-    # Complete a DFS search of all nodes in tree
-    while (len(triangle_stack) > 0):
-        a, b, c = triangle_stack.pop()
+    # Alternate between Pythagorean triple transformations to directly find the next solution
+    # This pattern occurs due to the nature of the Pell Equation that describes this problem:
+    # x^2 - 3b^2 = 1, where x = 3a +/- 2
+    transform1 = False
+
+    # Generate larger and larger primitive triangle solutions until max_p is reached
+    while (perimeter <= max_p):
+        result += perimeter
+
+        # Generate next triangle using either transformation 1 or transformation 3
+        if transform1:
+            a, b, c = (a)-(2*b)+(2*c), (2*a)-(b)+(2*c), (2*a)-(2*b)+(3*c)
+            transform1 = False
+        else:
+            a, b, c = (-a)+(2*b)+(2*c), (-2*a)+(b)+(2*c), (-2*a)+(2*b)+(3*c)
+            transform1 = True
 
         # The "almost equilateral" will be formed with hypotenuse and minimum side length
         if (a < b):
-            # Test triangle with 2 c's and 1 double length a
-            diff = c - (2*a)
-            if (diff == 1) or (diff == -1):
-                perimeter = c + c + (2*a)
-                result += perimeter
+            perimeter = 2*(c+a)
         else:
-            # Test triangle with 2 c's and 1 double length b
-            diff = c - (2*b)
-            if (diff == 1) or (diff == -1):
-                perimeter = c + c + (2*b)
-                result += perimeter
-
-        # Generate next primitive triangles with perimeters <= max_p
-        t1 = ((a)-(2*b)+(2*c), (2*a)-(b)+(2*c), (2*a)-(2*b)+(3*c))
-        t3 = ((-a)+(2*b)+(2*c), (-2*a)+(b)+(2*c), (-2*a)+(2*b)+(3*c))
-
-        if ((t1[0] + t1[1] + t1[2]) <= max_p) and (t1[2] <= max_c):
-            triangle_stack.append(t1)
-
-        if ((t3[0] + t3[1] + t3[2]) <= max_p) and (t3[2] <= max_c):
-            triangle_stack.append(t3)
+            perimeter = 2*(c+b)
 
     return result
 
@@ -409,6 +405,10 @@ def ProjectEuler_AmicableChains_95() -> int:
     proper_divisor_sum[1] = 0
 
     for i in range(2, n+1):
+        # TODO: add elif (memo[proper_divisor_sum[i]] == True): memo[i] = True
+        # But check if this adds any noticeably performance improvement first, since
+        # Often times sum(proper_divisors[i]) > i anyways
+        # TODO: add check for prime numbers here rather than in next loop?
         if (proper_divisor_sum[i] > n):
             proper_divisor_sum[i] = 1
             memo[i] = True
