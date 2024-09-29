@@ -201,6 +201,7 @@ def check_anagramic_squares(sqrs: list, w1: str, w2: str) -> int:
     return largest_square
 
 
+# TODO: can optimize further
 def ProjectEuler_IntegerCoordinateRightTriangles_91() -> int:
     # Initialize variables to define problem
     min_coord = 0
@@ -387,7 +388,6 @@ def ProjectEuler_AlmostEquilateralTriangles_94() -> int:
     return result
 
 
-# TODO: can optimize memoization more
 def ProjectEuler_AmicableChains_95() -> int:
     # Find longest amicable chain with all values <= n
     n = 1000000
@@ -405,25 +405,18 @@ def ProjectEuler_AmicableChains_95() -> int:
     proper_divisor_sum[1] = 0
 
     for i in range(2, n+1):
-        # TODO: add elif (memo[proper_divisor_sum[i]] == True): memo[i] = True
-        # But check if this adds any noticeably performance improvement first, since
-        # Often times sum(proper_divisors[i]) > i anyways
-        # TODO: add check for prime numbers here rather than in next loop?
-        if (proper_divisor_sum[i] > n):
-            proper_divisor_sum[i] = 1
+        # If i creates chain with val greater than n, or i is prime, or prop_div_sum of i is bad
+        # Then label 'i' as a bad val to prune it from later search
+        if (proper_divisor_sum[i] > n) or (memo[proper_divisor_sum[i]]):
             memo[i] = True
 
+        # Sieve approach: increment proper_divisor_sum for all multiples of i
         for curr_idx in range(i*2, n+1, i):
             proper_divisor_sum[curr_idx] += i
 
     # Check every value up to 'n' for an amicable chain
     for i in range(2, n+1):
         if (memo[i]):
-            continue
-
-        # A prime number cannot create an amicable chain
-        if (proper_divisor_sum[i] == 1):
-            memo[i] = True
             continue
 
         # Try to create an amicable chain starting from 'i'
@@ -438,6 +431,7 @@ def ProjectEuler_AmicableChains_95() -> int:
         if (memo[curr_val]):
             for num in curr_chain:
                 memo[num] = True
+            continue
 
         # If chain is not looping from the very first element, then it is an invalid chain
         # However, the later looping elements in this chain are not bad values
