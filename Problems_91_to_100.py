@@ -296,9 +296,9 @@ def ProjectEuler_ArithmeticExpressions_93() -> int:
     best_n = -1
     best_combo = -1
 
-    for a in range(1, 10):
-        for b in range(a+1, 10):
-            for c in range(b+1, 10):
+    for a in range(1, 7):
+        for b in range(a+1, 8):
+            for c in range(b+1, 9):
                 for d in range(c+1, 10):
                     digits = [a, b, c, d]
                     digit_combos = list(permutations(digits))
@@ -308,29 +308,28 @@ def ProjectEuler_ArithmeticExpressions_93() -> int:
                         for ops in op_combos:
                             # ab, abc, abcd
                             val1 = f(f(f(di[0], di[1], ops[0]) , di[2], ops[1]), di[3], ops[2])
-                            if (val1 < 0): val1 = -math.inf
+                            if (val1 > 0) and (val1 not in obtainable_nums):
+                                obtainable_nums.add(val1)
 
                             # ab, cd, abcd
                             val2 = f(f(di[0], di[1], ops[0]), f(di[2], di[3], ops[2]), ops[1])
-                            if (val2 < 0): val2 = -math.inf
+                            if (val2 > 0) and (val2 not in obtainable_nums):
+                                obtainable_nums.add(val2)
 
                             # bc, abc, abcd
                             val3 = f(f(di[0], f(di[1], di[2], ops[1]), ops[0]), di[3], ops[2])
-                            if (val3 < 0): val3 = -math.inf
+                            if (val3 > 0) and (val3 not in obtainable_nums):
+                                obtainable_nums.add(val3)
 
                             # bc, bcd, abcd
                             val4 = f(di[0], f(f(di[1], di[2], ops[1]), di[3], ops[2]), ops[1])
-                            if (val4 < 0): val4 = -math.inf
+                            if (val4 > 0) and (val4 not in obtainable_nums):
+                                obtainable_nums.add(val4)
 
                             # cd, bcd, abcd
                             val5 = f(di[0], f(di[1], f(di[2], di[3], ops[2]), ops[1]), ops[0])
-                            if (val5 < 0): val5 = -math.inf
-
-                            if (val1 != -math.inf) and (val1 == int(val1)): obtainable_nums.add(val1)
-                            if (val2 != -math.inf) and (val2 == int(val2)): obtainable_nums.add(val2)
-                            if (val3 != -math.inf) and (val3 == int(val3)): obtainable_nums.add(val3)
-                            if (val4 != -math.inf) and (val4 == int(val4)): obtainable_nums.add(val4)
-                            if (val5 != -math.inf) and (val5 == int(val5)): obtainable_nums.add(val5)
+                            if (val5 > 0) and (val5 not in obtainable_nums):
+                                obtainable_nums.add(val5)
 
                     curr_best_n = 0
                     for i in range(1, 100):
@@ -340,14 +339,9 @@ def ProjectEuler_ArithmeticExpressions_93() -> int:
 
                     if (curr_best_n > best_n):
                         best_n = curr_best_n
-                        best_combo = (a,b,c,d)
+                        best_combo = int(f"{a}{b}{c}{d}")
 
-    # Get result string
-    result = ""
-    for num in best_combo:
-        result += str(num)
-
-    return result
+    return best_combo
 
 
 def ProjectEuler_AlmostEquilateralTriangles_94() -> int:
