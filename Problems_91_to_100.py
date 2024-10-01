@@ -143,22 +143,19 @@ def sudoku_solver(board: list[list[int]], n: int, rows: list, cols: list, boxes:
     return False
 
 
-def check_anagramic_squares(sqrs: list, w1: str, w2: str) -> int:
-    n = len(sqrs)
-    largest_square = -1
-
-    # Get required mapping criteria:
+def check_anagramic_squares(sqrs: set, w1: str, w2: str, w_len: int) -> int:
+    max_square = -1
     num_distinct_letters = len(set(w1))
 
+    # For w1 and w2: get key:value map for each letter to the string indices it occurs in
     w1_dict = defaultdict(list)
-    for i in range(len(w1)):
-        w1_dict[w1[i]].append(i)
-
     w2_dict = defaultdict(list)
-    for i in range(len(w2)):
+
+    for i in range(w_len):
+        w1_dict[w1[i]].append(i)
         w2_dict[w2[i]].append(i)
 
-    # Mapping from w1 to w2 (w1:w2 k:v pairs)
+    # Map w1 indices for a given letter, to w2 indices for the same letter
     mapping = dict()
 
     for key in w1_dict.keys():
@@ -166,39 +163,27 @@ def check_anagramic_squares(sqrs: list, w1: str, w2: str) -> int:
         w2_val = tuple(w2_dict[key])
         mapping[w1_val] = w2_val
 
-    # Check for pair of squares that match this criteria:
-    for i in range(n):
-        sqr1 = str(sqrs[i])
+    # Iterate over all squares and check for a valid pair based on mapping criteria:
+    for curr_sqr in sqrs:
+        sqr1 = str(curr_sqr)
         if (len(set(sqr1)) != num_distinct_letters):
             continue
 
-        for j in range(i+1, n):
-            sqr2 = str(sqrs[j])
-            if (len(set(sqr2)) != num_distinct_letters):
-                continue
+        # Assign sqr1 to w1 and check if there is valid corresponding sqr for w2
+        sqr2 = [None] * w_len
 
-            valid_pair1 = True
-            valid_pair2 = True
+        for w1_idxs, w2_idxs in mapping.items():
+            for w1_idx in w1_idxs:
+                for w2_idx in w2_idxs:
+                    sqr2[w2_idx] = sqr1[w1_idx]
 
-            for w1_idxs, w2_idxs in mapping.items():
-                for w1_idx in w1_idxs:
-                    for w2_idx in w2_idxs:
-                        if sqr1[w1_idx] != sqr2[w2_idx]:
-                            valid_pair1 = False
-                            break
+        sqr2 = int("".join(sqr2))
 
-            if not valid_pair1:
-                for w1_idxs, w2_idxs in mapping.items():
-                    for w1_idx in w1_idxs:
-                        for w2_idx in w2_idxs:
-                            if sqr1[w2_idx] != sqr2[w1_idx]:
-                                valid_pair2 = False
-                                break
+        # Update largest found square with max of valid pair of squares
+        if (sqr2 in sqrs):
+            max_square = max(max_square, curr_sqr, sqr2)
 
-            if valid_pair1 or valid_pair2:
-                largest_square = max(largest_square, sqrs[i], sqrs[j])
-
-    return largest_square
+    return max_square
 
 
 # TODO: can optimize further
@@ -509,40 +494,47 @@ def ProjectEuler_AnagramicSquares_98() -> int:
         if (len(v) > 1):
             valid_word_pairs.append(tuple(v))
 
-    # valid_word_pairs.sort(key = lambda x: len(x[0]), reverse=True)
+    # Sort valid words based on length. Ex: sorted_word_pairs[5] = all 5 letter anagrams
     longest_word_pair = max(valid_word_pairs, key = lambda x: len(x[0]))
     longest_word_len = len(longest_word_pair[0])
-
     sorted_word_pairs = [[] for _ in range(longest_word_len+1)]
 
     for pair in valid_word_pairs:
         pair_len = len(pair[0])
         sorted_word_pairs[pair_len].append(pair)
 
-    largest_square = -1
+    # Store largest perfect square that can be formed by anagram word pair here
+    result = -1
 
+    # Search longest anagram word pairs first, as the largest square will have the most digits
     for num_digits in range(longest_word_len, -1, -1):
+        # If there are no anagram word pairs with current number of digits, then skip iteration
         if len(sorted_word_pairs[num_digits]) == 0:
             continue
 
+        # Calculate and store all perfect squares with exactly 'num_digits'
+        curr_squares = set()
         min_sqr = math.ceil(math.sqrt(math.pow(10, num_digits-1)))
         max_sqr = math.ceil(math.sqrt(math.pow(10, num_digits) - 1))
 
-        curr_squares = list()
         for x in range(min_sqr, max_sqr):
-            curr_squares.append(int(x ** 2))
+            curr_squares.add(int(x ** 2))
 
-        for words in sorted_word_pairs[num_digits]:
-            for i in range(len(words)):
-                for j in range(i+1, len(words)):
-                    w1, w2 = words[i], words[j]
-                    result = check_anagramic_squares(curr_squares, w1, w2)
-                    largest_square = max(largest_square, result)
+        # Iterate over all anagram word pairs with length equal to num_digits
+        # Find largest perfect square that maps to each word pair and store in 'result'
+        for word_pair in sorted_word_pairs[num_digits]:
+            for i in range(len(word_pair)):
+                for j in range(i+1, len(word_pair)):
+                    w1, w2 = word_pair[i], word_pair[j]
+                    largest_square = check_anagramic_squares(curr_squares, w1, w2, num_digits)
+                    result = max(result, largest_square)
 
-        if (largest_square != -1):
-            return largest_square
+        # Result gets set to largest found square for current number of digits
+        # In next iteration, will have (num_digits-=1) and thus curr result must be max result
+        if (result != -1):
+            return result
 
-    return largest_square
+    return result
 
 
 def ProjectEuler_LargestExponential_99() -> int:
