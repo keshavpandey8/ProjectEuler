@@ -3,7 +3,28 @@ from itertools import permutations
 import json
 import math
 from pathlib import Path
-from ProjectEuler_Helpers import check_prime
+
+# Helper function that determines if input parameter is prime
+# This prime number checker uses trial division algorithm
+def check_prime(val: int) -> bool:
+    # Smallest and only even prime number is 2
+    if (val < 2):
+        return False
+    elif (val == 2):
+        return True
+    elif ((val % 2) == 0):
+        return False
+
+    # Input val is a positive odd number
+    # Check if val has any factors. If so, then it is not prime
+    max_prime = math.floor(math.sqrt(val))
+    for i in range(3, max_prime+1, 2):
+        if ((val % i) == 0):
+            return False
+
+    # No factors found for val. Therefore it must be prime
+    return True
+
 
 # Returns true if 'val' is a 0 to 9 pandigital
 def pandigital(val: int) -> bool:

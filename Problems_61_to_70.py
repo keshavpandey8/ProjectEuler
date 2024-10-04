@@ -4,7 +4,6 @@ from itertools import permutations
 import json
 import math
 from pathlib import Path
-from ProjectEuler_Helpers import check_prime, concatenate_integers
 
 def get_next_continued_fraction(sqr_const: int, sqrt_const: int, num_val: int, denom_val: int) -> tuple[int, int, int]:
     # Solve for the next a_i constant
@@ -48,6 +47,37 @@ def get_convergent_fraction(a0: int, a_vals: list) -> tuple[int, int]:
     numerator += a0 * denominator
 
     return (numerator, denominator)
+
+
+# Return concatenation of two positive integers (x+y) without any type casting
+def concatenate_integers(x: int, y: int):
+    order_y = 1
+    while (order_y <= y):
+        order_y *= 10
+
+    return ((x * order_y) + y)
+
+
+# Helper function that determines if input parameter is prime
+# This prime number checker uses trial division algorithm
+def check_prime(val: int) -> bool:
+    # Smallest and only even prime number is 2
+    if (val < 2):
+        return False
+    elif (val == 2):
+        return True
+    elif ((val % 2) == 0):
+        return False
+
+    # Input val is a positive odd number
+    # Check if val has any factors. If so, then it is not prime
+    max_prime = math.floor(math.sqrt(val))
+    for i in range(3, max_prime+1, 2):
+        if ((val % i) == 0):
+            return False
+
+    # No factors found for val. Therefore it must be prime
+    return True
 
 
 # Helper function that calculates phi and phi_ratio for val with only 2 prime factors

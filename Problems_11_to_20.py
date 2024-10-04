@@ -283,7 +283,7 @@ def ProjectEuler_DivisibleTriangularNumber_12() -> int:
 def ProjectEuler_LargeSum_13() -> int:
     # Read list of one hundred 50-digit integers
     try:
-        input_file = open(Path("input_files/0013_50digit_nums.txt"), "r")
+        input_file = open(Path("input_files/0013_nums.txt"), "r")
         input_list = json.load(input_file)
         input_file.close()
     except FileNotFoundError:

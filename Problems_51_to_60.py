@@ -3,7 +3,6 @@ from collections import Counter, defaultdict
 import json
 import math
 from pathlib import Path
-from ProjectEuler_Helpers import concatenate_integers
 import re
 
 def check_prime_family(val: list, indices: list, memo: set, prime_family_size: int) -> bool:
@@ -252,6 +251,15 @@ def check_likely_prime(num: int) -> bool:
             return False
 
     return True
+
+
+# Return concatenation of two positive integers (x+y) without any type casting
+def concatenate_integers(x: int, y: int):
+    order_y = 1
+    while (order_y <= y):
+        order_y *= 10
+
+    return ((x * order_y) + y)
 
 
 def check_prime_pair(x: int, y: int, memo: set) -> bool:
