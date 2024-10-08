@@ -457,16 +457,21 @@ def ProjectEuler_SuDoku_96() -> int:
     return result
 
 
-# TODO: can be optimized
 def ProjectEuler_Large_NonMersenne_Prime_97() -> int:
     power = 7830457
     const_mult = 28433
     modulo = 10000000000
     result = 1
 
+    # Idea: x^y = x^a * x^b * x^c -> when y=a+b+c
+    # Example: 2^19 -> 19 = 0b10011 = 16 + 2 + 1 -> 2^19 = (2^16) * (2^2) * (2^1)
     # Calculate last 10 digits of math.pow(2, 7830457)
-    for _ in range(power):
-        result = (result*2) % modulo
+    curr_pow = 1
+    while (power > 0):
+        if (power & 1):
+            result = (result * (2**curr_pow)) % modulo
+        power >>= 1
+        curr_pow <<= 1
 
     # non_mersenne_prime = (28433 * math.pow(2, 7830457)) + 1
     result = (const_mult * result + 1) % modulo
