@@ -24,17 +24,23 @@ def check_prime(val: int) -> bool:
     return True
 
 
-# TODO: solve using mathematical properties
 def ProjectEuler_Multiples_1() -> int:
-    # Consider all multiples up to 1000
+    # Consider all positive multiples below 1000
     n = 1000
     curr_sum = 0
 
-    # Iterate through all values up to limit
-    for i in range(n):
-        # Update sum if current value is a multiple of 3 or 5
-        if ((i % 3) == 0) or ((i % 5) == 0):
-            curr_sum += i
+    # Calculate number of multiples of 3 below n, then apply arithmetic series formula
+    num_mults = math.floor((n-1) / 3)
+    curr_sum += (3 * (1+num_mults) * num_mults) >> 1
+
+    # Calculate number of multiples of 5 below n, then apply arithmetic series formula
+    num_mults = math.floor((n-1) / 5)
+    curr_sum += (5 * (1+num_mults) * num_mults) >> 1
+
+    # Calculate number of multiples of 15 below n, then apply arithmetic series formula
+    # Note: subtract multiples of 15 as they are double counted when summing multiples of 3 and 5
+    num_mults = math.floor((n-1) / 15)
+    curr_sum -= (15 * (1+num_mults) * num_mults) >> 1
 
     return curr_sum
 
